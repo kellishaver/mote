@@ -44,15 +44,19 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 ```
 src/
 ├── CLAUDE.md
-├── main.py              # Entry point — runs on boot after boot.py
-├── boot.py              # Early boot config (wifi, filesystem, etc.)
-├── hello_screen.py      # Phase 1 display test script
-├── config.py            # Pin assignments, network credentials, constants
-├── lib/                 # Third-party or shared libraries
-├── drivers/             # Hardware-specific drivers (sensors, actuators, displays)
-├── utils/               # Helper modules
-├── fonts/               # TTF fonts for display rendering
-└── docs/                # Flash instructions, known issues, phase notes
+├── ARCHITECTURE.md      # Shell architecture decisions
+├── main.py              # Entry point — inits hardware, runs shell
+├── shell.py             # App launcher grid with touch navigation
+├── ft3168.py            # FT3168 touch driver
+├── app_template.py      # App interface template
+├── app_color.py         # RGB colour picker app
+├── app_info.py          # System info app
+├── hello_screen.py      # Phase 1 display test
+├── touch_test.py        # Phase 2 touch test
+├── tap_zones.py         # Phase 2 zone demo
+├── fonts/
+│   └── large.py         # Bitmap font, 31px tall
+└── docs/                # Flash instructions, known issues
 ```
 
 ## Coding Conventions

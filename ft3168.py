@@ -28,18 +28,19 @@ _REG_PWR_MODE   = const(0xA5)
 class FT3168:
     def __init__(self, scl=39, sda=40, int_pin=41, addr=_ADDR, freq=400000):
         self._addr = addr
-        self._int = Pin(int_pin, Pin.OUT)
+        self._int_pin = int_pin
         self._buf4 = bytearray(4)
-
-        # Wake the touch controller from hibernate
-        self.wake()
-
         self._i2c = I2C(1, scl=Pin(scl), sda=Pin(sda), freq=freq)
 
-        if addr not in self._i2c.scan():
-            raise RuntimeError(
-                "FT3168 not found at 0x{:02x}. Try touching the screen first.".format(addr)
-            )
+        # The FT3168 hibernates on cold boot. Retry wake indefinitely.
+        while addr not in self._i2c.scan():
+            self._int = Pin(int_pin, Pin.OUT)
+            self.wake()
+            try:
+                self._i2c.writeto(addr, b'\x00')
+            except OSError:
+                pass
+            time.sleep_ms(100)
 
         # Set normal operating mode
         self._i2c.writeto_mem(addr, _REG_DEV_MODE, b'\x00')
