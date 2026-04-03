@@ -1,0 +1,10 @@
+{
+    "wifi": {
+        "ssid": "",
+        "password": ""
+    },
+    "owner": {
+        "name": "Mote",
+        "email": ""
+    }
+}

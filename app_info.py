@@ -1,5 +1,4 @@
-# app_info.py — System information screen
-# Swipe left to exit.
+# app_info.py — System information screen with vertical scrolling
 
 NAME = "Sys Info"
 ICON = 0x07E0  # green
@@ -8,20 +7,36 @@ def run(display, touch, font):
     import sys
     import gc
     import time
+    import json
     import network
+    import os
 
     W = display.width()
     H = display.height()
     BG = display.colorRGB(15, 15, 30)
     WHITE = 0xFFFF
     LABEL = display.colorRGB(0, 160, 255)
+    GREY = display.colorRGB(100, 100, 120)
+    LABEL_W = 170  # left column width
 
+    # Swipe-right-edge to exit
     SWIPE_EDGE = 496
     SWIPE_DIST = 120
     touch_start_x = -1
 
+    # Scroll state
+    SWIPE_Y_THRESH = 20
+    scroll_y = 0
+    touch_start_y = -1
+    last_touch_y = -1
+    scrolling = False
+
+    # --- Gather static info ---
     impl = sys.implementation
-    board = getattr(impl, "_machine", "unknown")
+    try:
+        board = os.uname().machine
+    except:
+        board = getattr(impl, "_machine", None) or sys.platform or "unknown"
     version = "{}.{}.{}".format(impl.version[0], impl.version[1], impl.version[2])
 
     try:
@@ -31,51 +46,95 @@ def run(display, touch, font):
     except:
         mac = "unavailable"
 
-    def draw(mem_free):
-        display.fill(BG)
-        y = 10
+    # Load settings
+    owner_name = ""
+    owner_email = ""
+    try:
+        with open("settings.json", "r") as f:
+            settings = json.load(f)
+        owner = settings.get("owner", {})
+        owner_name = owner.get("name", "")
+        owner_email = owner.get("email", "")
+    except:
+        pass
+
+    def get_wifi_status():
+        try:
+            sta = network.WLAN(network.STA_IF)
+            if sta.isconnected():
+                return sta.config("essid")
+        except:
+            pass
+        return "Not Connected"
+
+    def build_lines(mem_free):
+        lines = []
+        lines.append(("Board", "ESP32-S3 Waveshare"))
+        lines.append(("uPy", version))
+        lines.append(("MAC", mac))
+        lines.append(("Free RAM", "{} KB".format(mem_free // 1024)))
+        lines.append(("Display", "536x240 AMOLED"))
+        lines.append(("WiFi", get_wifi_status()))
+        lines.append(("Battery", "--"))
+        lines.append(("Owner", owner_name if owner_name else "--"))
+        if owner_email:
+            lines.append(("", owner_email))
+        return lines
+
+    def draw(lines, full=True):
         gap = font.HEIGHT + 8
-
-        display.write(font, "Board", 10, y, LABEL, BG)
-        display.write(font, board[:30], 140, y, WHITE, BG)
-        y += gap
-
-        display.write(font, "uPy", 10, y, LABEL, BG)
-        display.write(font, version, 140, y, WHITE, BG)
-        y += gap
-
-        display.write(font, "MAC", 10, y, LABEL, BG)
-        display.write(font, mac, 140, y, WHITE, BG)
-        y += gap
-
-        display.write(font, "Free RAM", 10, y, LABEL, BG)
-        kb = mem_free // 1024
-        display.write(font, "{} KB".format(kb), 140, y, WHITE, BG)
-        y += gap
-
-        display.write(font, "Display", 10, y, LABEL, BG)
-        display.write(font, "536x240 AMOLED", 140, y, WHITE, BG)
-        y += gap
-
+        if full:
+            display.fill(BG)
+        for i, (label, value) in enumerate(lines):
+            y = 10 + i * gap - scroll_y
+            if y < 0 or y + font.HEIGHT > H:
+                continue
+            if full and label:
+                display.write(font, label, 10, y, LABEL, BG)
+            if value:
+                # Clear value area then write
+                display.fill_rect(LABEL_W, y, W - LABEL_W, font.HEIGHT, BG)
+                display.write(font, value, LABEL_W, y, WHITE, BG)
 
     gc.collect()
-    draw(gc.mem_free())
+    lines = build_lines(gc.mem_free())
+    gap = font.HEIGHT + 8
+    max_scroll = max(0, 10 + len(lines) * gap - H)
+    draw(lines)
     last_refresh = time.ticks_ms()
 
     while True:
         pos = touch.get_touch()
         if pos is not None:
             tx, ty = pos
+
+            # Exit swipe from right edge
             if touch_start_x < 0:
                 touch_start_x = tx if tx > SWIPE_EDGE else -2
             if touch_start_x >= 0 and touch_start_x - tx > SWIPE_DIST:
                 return
+
+            # Vertical scroll tracking
+            if touch_start_y < 0:
+                touch_start_y = ty
+                last_touch_y = ty
+            dy = ty - last_touch_y
+            if abs(ty - touch_start_y) > SWIPE_Y_THRESH:
+                scrolling = True
+            if scrolling:
+                scroll_y = max(0, min(max_scroll, scroll_y - dy))
+                draw(lines)
+            last_touch_y = ty
         else:
             touch_start_x = -1
+            touch_start_y = -1
+            last_touch_y = -1
+            scrolling = False
 
         if time.ticks_diff(time.ticks_ms(), last_refresh) > 2000:
             gc.collect()
-            draw(gc.mem_free())
+            lines = build_lines(gc.mem_free())
+            draw(lines, full=False)
             last_refresh = time.ticks_ms()
 
         time.sleep_ms(30)

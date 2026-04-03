@@ -45,7 +45,6 @@ def show_error(display, font, error_text):
 
 # --- App registry ---
 APPS = [
-    "app_color",
     "app_info",
 ]
 
@@ -56,7 +55,7 @@ try:
 
     # Show boot splash briefly
     display.fill(display.colorRGB(10, 10, 30))
-    display.write(font, "klone", 210, 90, display.colorRGB(0, 180, 255))
+    display.write(font, "mote", 220, 90, display.colorRGB(255, 140, 0))
     display.write(font, "starting...", 190, 130, display.colorRGB(80, 80, 100))
 
     touch = init_touch()

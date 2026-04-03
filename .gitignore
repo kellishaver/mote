@@ -4,3 +4,5 @@ secrets.py
 .vscode/
 __pycache__/
 .DS_Store
+tools/mkicon.sh
+settings.json

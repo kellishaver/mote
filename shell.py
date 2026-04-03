@@ -1,6 +1,8 @@
 # shell.py
 # Touch-navigable app launcher for Waveshare ESP32-S3-Touch-AMOLED-1.91.
 # Renders a scrollable grid of app tiles. Tap a tile to launch its app.
+# Icons: if /icons/<module_name>.bin exists (40x40 RGB565), it's used.
+# Otherwise falls back to ICON colour constant from the app module.
 
 import time
 import sys
@@ -14,10 +16,24 @@ PAD_X = 8
 PAD_Y = 5
 GRID_TOP = 5
 GRID_LEFT = (536 - COLS * TILE_W - (COLS - 1) * PAD_X) // 2
+ICON_SIZE = 40
 
 # Touch thresholds
 SWIPE_THRESHOLD = 30
 DEBOUNCE_MS = 200
+
+
+def _load_icon(module_name):
+    """Try to load /icons/<name>.bin as a bytearray. Returns None on failure."""
+    path = "/icons/{}.bin".format(module_name)
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        if len(data) == ICON_SIZE * ICON_SIZE * 2:
+            return bytearray(data)
+    except:
+        pass
+    return None
 
 
 def _tile_rect(index, scroll_y):
@@ -29,28 +45,29 @@ def _tile_rect(index, scroll_y):
     return (x, y, TILE_W, TILE_H)
 
 
-def _draw_tile(display, font, name, icon_color, x, y, w, h):
+def _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h):
     """Draw a single app tile at (x, y)."""
-    # Clip tiles that are fully off-screen
     if y + h < 0 or y >= 240:
         return
 
     # Tile background
     display.fill_rect(x, y, w, h, display.colorRGB(45, 45, 60))
 
-    # Icon block (coloured square, top portion of tile)
-    icon_size = 40
-    icon_x = x + (w - icon_size) // 2
+    # Icon (bitmap or solid colour)
+    icon_x = x + (w - ICON_SIZE) // 2
     icon_y = y + 10
-    if icon_y + icon_size > 0 and icon_y < 240:
-        display.fill_rect(icon_x, max(0, icon_y), icon_size,
-                          min(icon_size, 240 - max(0, icon_y)), icon_color)
+    if 0 <= icon_y and icon_y + ICON_SIZE <= 240:
+        if icon_bmp:
+            display.bitmap(icon_x, icon_y, icon_x + ICON_SIZE - 1,
+                           icon_y + ICON_SIZE - 1, icon_bmp)
+        else:
+            display.fill_rect(icon_x, icon_y, ICON_SIZE, ICON_SIZE, icon_color)
 
     # Label (centred below icon)
     text_w = display.write_len(font, name)
     text_x = x + (w - text_w) // 2
-    text_y = icon_y + icon_size + 8
-    if 0 <= text_y < 240 - font.HEIGHT:
+    text_y = icon_y + ICON_SIZE + 8
+    if 0 <= text_y and text_y + font.HEIGHT <= 240:
         display.write(font, name, text_x, text_y, 0xFFFF, display.colorRGB(45, 45, 60))
 
 
@@ -58,9 +75,9 @@ def _draw_launcher(display, font, apps_meta, scroll_y):
     """Redraw the full launcher grid."""
     display.fill(display.colorRGB(15, 15, 25))
 
-    for i, (name, icon_color) in enumerate(apps_meta):
+    for i, (name, icon_color, icon_bmp) in enumerate(apps_meta):
         x, y, w, h = _tile_rect(i, scroll_y)
-        _draw_tile(display, font, name, icon_color, x, y, w, h)
+        _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h)
 
 
 def _hit_test(touch_x, touch_y, num_apps, scroll_y):
@@ -74,7 +91,6 @@ def _hit_test(touch_x, touch_y, num_apps, scroll_y):
 
 def _load_app(module_path):
     """Dynamically import an app module. Returns the module or None."""
-    # Remove from cache if previously loaded (ensures fresh state)
     if module_path in sys.modules:
         del sys.modules[module_path]
     gc.collect()
@@ -93,25 +109,20 @@ def _unload_app(module_path):
 
 
 def run(app_paths, display, touch, font):
-    """Main launcher loop.
-
-    app_paths: list of module name strings (e.g. ["app_color", "app_info"])
-    display:   amoled.AMOLED display object
-    touch:     FT3168 touch driver
-    font:      bitmap font module
-    """
-    # Load app metadata (NAME, ICON) without keeping modules in memory
+    """Main launcher loop."""
+    # Load app metadata and icons
     apps_meta = []
     for path in app_paths:
         mod = _load_app(path)
         if mod:
-            apps_meta.append((
-                getattr(mod, "NAME", path),
-                getattr(mod, "ICON", 0x4208),
-            ))
+            name = getattr(mod, "NAME", path)
+            icon_color = getattr(mod, "ICON", 0x4208)
             _unload_app(path)
         else:
-            apps_meta.append((path, 0xF800))  # red = failed to load
+            name = path
+            icon_color = 0xF800  # red = failed
+        icon_bmp = _load_icon(path)
+        apps_meta.append((name, icon_color, icon_bmp))
 
     scroll_y = 0
     num_rows = (len(app_paths) + COLS - 1) // COLS
@@ -130,7 +141,6 @@ def run(app_paths, display, touch, font):
         last_y = start_y
         dragging = False
 
-        # Track the touch until released
         while True:
             time.sleep_ms(15)
             pos = touch.get_touch()
@@ -145,14 +155,12 @@ def run(app_paths, display, touch, font):
             last_y = cur_y
 
         if dragging:
-            # Finished scrolling — debounce
             time.sleep_ms(DEBOUNCE_MS)
             continue
 
-        # It was a tap — check which tile
         elapsed = time.ticks_diff(time.ticks_ms(), start_tick)
         if elapsed > 500:
-            continue  # long press, ignore
+            continue
 
         idx = _hit_test(start_x, start_y, len(app_paths), scroll_y)
         if idx < 0:
@@ -167,7 +175,6 @@ def run(app_paths, display, touch, font):
             except KeyboardInterrupt:
                 raise
             except Exception as e:
-                # Show error on screen, then return to launcher
                 display.fill(display.colorRGB(80, 0, 0))
                 display.write(font, "App crashed", 10, 10, 0xFFFF)
                 msg = str(e)[:40]
@@ -179,5 +186,4 @@ def run(app_paths, display, touch, font):
                 time.sleep_ms(DEBOUNCE_MS)
         _unload_app(app_paths[idx])
 
-        # Redraw launcher
         _draw_launcher(display, font, apps_meta, scroll_y)
