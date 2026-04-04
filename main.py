@@ -48,6 +48,7 @@ APPS = [
     "app_imu",
     "app_iping",
     "app_ohm",
+    "app_swatch",
     "app_info",
 ]
 

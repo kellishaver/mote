@@ -13,7 +13,7 @@
 #
 # To exit back to the launcher, simply return from run().
 # The shell redraws itself after run() returns.
-# Navigation: long-press (2.5s) anywhere to return to launcher.
+# Navigation: a physical button will be used to return to the launcher.
 #
 # Guidelines:
 # - Do not call display.deinit() — the shell owns the display lifecycle
@@ -27,9 +27,6 @@ ICON = 0x4208  # dark grey in colour565
 def run(display, touch, font):
     import time
 
-    HOLD_EXIT_MS = 2500
-    hold_start = -1
-
     BG = display.colorRGB(30, 30, 30)
     display.fill(BG)
     display.write(font, NAME, 10, 10, 0xFFFF)
@@ -37,10 +34,5 @@ def run(display, touch, font):
     while True:
         pos = touch.get_touch()
         if pos is not None:
-            if hold_start < 0:
-                hold_start = time.ticks_ms()
-            elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
-                return
-        else:
-            hold_start = -1
+            pass  # handle touch
         time.sleep_ms(30)

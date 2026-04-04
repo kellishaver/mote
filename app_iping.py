@@ -28,9 +28,6 @@ def run(display, touch, font):
     FIELD_BG = display.colorRGB(30, 30, 50)
     FIELD_BORDER = display.colorRGB(80, 90, 120)
 
-    # Long-press to exit (2.5 seconds)
-    HOLD_EXIT_MS = 2500
-    hold_start = -1
 
     # State
     octets = [8, 8, 8, 8]
@@ -272,24 +269,14 @@ def run(display, touch, font):
                             edit_buf += key
                             draw_numpad()
             else:
-                # Long-press to exit
-                if hold_start < 0:
-                    hold_start = time.ticks_ms()
-                elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
-                    return
-
                 if ip_field_hit(tx, ty):
-                    hold_start = -1
                     editing = True
                     edit_octet = 0
                     edit_buf = ""
                     draw_numpad()
                     time.sleep_ms(200)
                 elif btn_hit(tx, ty):
-                    hold_start = -1
                     time.sleep_ms(150)
                     do_ping()
-        else:
-            hold_start = -1
 
         time.sleep_ms(30)

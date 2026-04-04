@@ -18,9 +18,6 @@ def run(display, touch, font):
     GREY = display.colorRGB(60, 60, 60)
     DIM = display.colorRGB(100, 100, 100)
 
-    # Long-press to exit (2.5 seconds)
-    HOLD_EXIT_MS = 2500
-    hold_start = -1
 
     # Arrow tap zones
     ARROW_W = 40
@@ -98,24 +95,14 @@ def run(display, touch, font):
         if pos is not None:
             tx, ty = pos
 
-            # Long-press to exit
-            if hold_start < 0:
-                hold_start = time.ticks_ms()
-            elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
-                return
-
-            # Arrow taps (reset hold timer on navigation)
+            # Arrow taps
             if tx < ARROW_W and screen > 0:
                 screen = 0
-                hold_start = -1
                 draw_frame()
                 time.sleep_ms(200)
             elif tx > ARROW_RIGHT and screen < 1:
                 screen = 1
-                hold_start = -1
                 draw_frame()
                 time.sleep_ms(200)
-        else:
-            hold_start = -1
 
         time.sleep_ms(100)

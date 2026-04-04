@@ -140,7 +140,7 @@ def run(display, touch, font):
     # font    - bitmap font for display.write(font, text, x, y, color)
     #
     # Return from run() to go back to the launcher.
-    # Long-press (2.5s) is the standard "back" gesture.
+    # A physical button will handle returning to the launcher.
     pass
 ```
 
@@ -159,7 +159,7 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 ## Navigation
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
-- **Inside apps:** Long-press (hold touch for 2.5 seconds) anywhere to return to the launcher.
+- **Inside apps:** A physical button (to be added with enclosure) returns to the launcher. During development, use Ctrl-C from mpremote.
 
 ## Known Issues
 

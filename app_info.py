@@ -19,9 +19,6 @@ def run(display, touch, font):
     GREY = display.colorRGB(100, 100, 120)
     LABEL_W = 170  # left column width
 
-    # Long-press to exit (2.5 seconds)
-    HOLD_EXIT_MS = 2500
-    hold_start = -1
 
     # Scroll state
     SWIPE_Y_THRESH = 20
@@ -107,12 +104,6 @@ def run(display, touch, font):
         if pos is not None:
             tx, ty = pos
 
-            # Long-press to exit
-            if hold_start < 0:
-                hold_start = time.ticks_ms()
-            elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
-                return
-
             # Vertical scroll tracking
             if touch_start_y < 0:
                 touch_start_y = ty
@@ -125,7 +116,6 @@ def run(display, touch, font):
                 draw(lines)
             last_touch_y = ty
         else:
-            hold_start = -1
             touch_start_y = -1
             last_touch_y = -1
             scrolling = False

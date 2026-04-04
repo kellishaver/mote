@@ -26,9 +26,6 @@ def run(display, touch, font):
     KEY_BG = display.colorRGB(35, 35, 55)
     KEY_BORDER = display.colorRGB(70, 70, 100)
 
-    # Long-press to exit (2.5 seconds)
-    HOLD_EXIT_MS = 2500
-    hold_start = -1
 
     # State
     values = ["", "", ""]  # V, I, R as strings
@@ -331,15 +328,8 @@ def run(display, touch, font):
                             edit_buf += key
                             draw_numpad()
             else:
-                # Long-press to exit
-                if hold_start < 0:
-                    hold_start = time.ticks_ms()
-                elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
-                    return
-
                 fi = field_hit(tx, ty)
                 if fi >= 0:
-                    hold_start = -1
                     editing = True
                     edit_field = fi
                     edit_buf = values[fi] if result_idx != fi else ""
@@ -349,14 +339,10 @@ def run(display, touch, font):
                     draw_numpad()
                     time.sleep_ms(200)
                 elif calc_hit(tx, ty):
-                    hold_start = -1
                     time.sleep_ms(150)
                     do_calculate()
                 elif clr_hit(tx, ty):
-                    hold_start = -1
                     time.sleep_ms(150)
                     do_clear()
-        else:
-            hold_start = -1
 
         time.sleep_ms(30)
