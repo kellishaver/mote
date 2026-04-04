@@ -13,14 +13,13 @@
 #
 # To exit back to the launcher, simply return from run().
 # The shell redraws itself after run() returns.
-# Navigation: swipe left to go back to the launcher.
+# Navigation: long-press (2.5s) anywhere to return to launcher.
 #
 # Guidelines:
 # - Do not call display.deinit() — the shell owns the display lifecycle
 # - Avoid large allocations — free memory is limited
 # - Use time.sleep_ms(20-30) in polling loops to avoid watchdog resets
 # - Wrap I/O in try/except — touch can raise OSError if FT3168 hibernates
-# - Detect swipe-left (dx < -60) to exit back to launcher
 
 NAME = "Template"
 ICON = 0x4208  # dark grey in colour565
@@ -28,9 +27,8 @@ ICON = 0x4208  # dark grey in colour565
 def run(display, touch, font):
     import time
 
-    SWIPE_EDGE = 496
-    SWIPE_DIST = 120
-    touch_start_x = -1
+    HOLD_EXIT_MS = 2500
+    hold_start = -1
 
     BG = display.colorRGB(30, 30, 30)
     display.fill(BG)
@@ -39,11 +37,10 @@ def run(display, touch, font):
     while True:
         pos = touch.get_touch()
         if pos is not None:
-            tx, ty = pos
-            if touch_start_x < 0:
-                touch_start_x = tx if tx > SWIPE_EDGE else -2
-            if touch_start_x >= 0 and touch_start_x - tx > SWIPE_DIST:
+            if hold_start < 0:
+                hold_start = time.ticks_ms()
+            elif time.ticks_diff(time.ticks_ms(), hold_start) >= HOLD_EXIT_MS:
                 return
         else:
-            touch_start_x = -1
+            hold_start = -1
         time.sleep_ms(30)

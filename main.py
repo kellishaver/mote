@@ -47,6 +47,7 @@ def show_error(display, font, error_text):
 APPS = [
     "app_imu",
     "app_iping",
+    "app_ohm",
     "app_info",
 ]
 

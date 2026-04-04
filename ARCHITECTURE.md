@@ -44,6 +44,7 @@ If `main.py` itself crashes (display/touch init failure, shell crash):
 - 3 columns, tiles 170×110 px with 8px horizontal / 5px vertical padding
 - Vertically scrollable via swipe (Y drag > 30px threshold)
 - Tap detection: if the touch starts and ends without exceeding the swipe threshold within 500ms, it's a tap
+- App exit: long-press (hold touch for 2.5 seconds) anywhere returns to the launcher
 
 ## Known Limitations
 
