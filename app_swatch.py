@@ -19,6 +19,7 @@ def run(display, touch, font):
     LIGHT_GREY = display.colorRGB(140, 140, 160)
     TRACK_BG = display.colorRGB(35, 35, 50)
     KNOB = WHITE
+    ORANGE = display.colorRGB(255, 140, 0)
 
 
     # State
@@ -45,7 +46,8 @@ def run(display, touch, font):
     SWATCH_H = 70
     SWATCH_W = W // 2
     HEX_X = SWATCH_W + 10
-    HEX_Y = (SWATCH_H - font.HEIGHT) // 2
+    LABEL_Y = 8
+    HEX_Y = SWATCH_H - font.HEIGHT + 2
 
     SL_X = 30
     SL_W = W - 60
@@ -94,6 +96,11 @@ def run(display, touch, font):
 
     def draw_hex():
         display.fill_rect(SWATCH_W, SWATCH_Y, W - SWATCH_W, SWATCH_H, BG)
+        # Title
+        tw = display.write_len(font, "Swatch")
+        tx = SWATCH_W + (W - SWATCH_W - tw) // 2
+        display.write(font, "Swatch", tx, LABEL_Y, ORANGE, BG)
+        # Hex
         h = hex_str()
         hw = display.write_len(font, h)
         hx = SWATCH_W + (W - SWATCH_W - hw) // 2

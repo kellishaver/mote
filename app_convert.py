@@ -31,7 +31,7 @@ def run(display, touch, font):
 
     FIELD_W = 170
     FIELD_H = 50
-    FIELD_X = 55
+    FIELD_X = 70
     FIELD_Y0 = 50
     FIELD_Y1 = FIELD_Y0 + FIELD_H + 20
     LABEL_X = 10
