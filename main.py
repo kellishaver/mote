@@ -45,9 +45,9 @@ def show_error(display, font, error_text):
 
 # --- App registry ---
 APPS = [
-    "app_info",
     "app_imu",
     "app_iping",
+    "app_info",
 ]
 
 # --- Boot ---
