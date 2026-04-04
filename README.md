@@ -120,8 +120,7 @@ mote/
 ├── icons/               # 40x40 RGB565 icon bitmaps
 ├── examples/            # Demo/test scripts from development
 ├── tools/
-│   ├── png_to_icon.py   # PNG to colour565 converter
-│   └── mkicon.sh        # Convenience wrapper
+│   └── png_to_icon.py   # PNG to colour565 converter
 └── docs/                # Flash instructions, known issues
 ```
 
