@@ -62,6 +62,9 @@ def convert(input_path, output_path):
 
     print("Converted {} -> {} ({} bytes, {}x{})".format(
         input_path, output_path, len(data), ICON_SIZE, ICON_SIZE))
+    print("\nUpload to board:")
+    print("  mpremote connect $PORT cp {} :/icons/{}".format(
+        output_path, output_path.name))
 
 
 if __name__ == "__main__":

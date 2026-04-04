@@ -42,8 +42,13 @@ class FT3168:
                 pass
             time.sleep_ms(100)
 
-        # Set normal operating mode
-        self._i2c.writeto_mem(addr, _REG_DEV_MODE, b'\x00')
+        # Set normal operating mode (retry — FT3168 can drop right after wake)
+        for _ in range(5):
+            try:
+                self._i2c.writeto_mem(addr, _REG_DEV_MODE, b'\x00')
+                break
+            except OSError:
+                time.sleep_ms(50)
 
         # Return INT pin to input for future use
         self._int = Pin(int_pin, Pin.IN)
