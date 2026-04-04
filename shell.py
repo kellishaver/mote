@@ -57,7 +57,7 @@ def _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h):
     icon_x = x + (w - ICON_SIZE) // 2
     icon_y = y + 10
     if 0 <= icon_y and icon_y + ICON_SIZE <= 240:
-        if icon_bmp:
+        if icon_bmp is not None:
             display.bitmap(icon_x, icon_y, icon_x + ICON_SIZE - 1,
                            icon_y + ICON_SIZE - 1, icon_bmp)
         else:
@@ -73,11 +73,41 @@ def _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h):
 
 def _draw_launcher(display, font, apps_meta, scroll_y):
     """Redraw the full launcher grid."""
-    display.fill(display.colorRGB(15, 15, 25))
+    BG = display.colorRGB(15, 15, 25)
+    TILE_BG = display.colorRGB(45, 45, 60)
+    display.fill(BG)
 
+    # Pass 1: draw all tile backgrounds
+    for i in range(len(apps_meta)):
+        x, y, w, h = _tile_rect(i, scroll_y)
+        if y + h >= 0 and y < 240:
+            display.fill_rect(x, y, w, h, TILE_BG)
+
+    # Pass 2: draw all icons
     for i, (name, icon_color, icon_bmp) in enumerate(apps_meta):
         x, y, w, h = _tile_rect(i, scroll_y)
-        _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h)
+        if y + h < 0 or y >= 240:
+            continue
+        icon_x = x + (w - ICON_SIZE) // 2
+        icon_y = y + 10
+        if 0 <= icon_y and icon_y + ICON_SIZE <= 240:
+            if icon_bmp is not None:
+                display.bitmap(icon_x, icon_y, icon_x + ICON_SIZE - 1,
+                               icon_y + ICON_SIZE - 1, icon_bmp)
+            else:
+                display.fill_rect(icon_x, icon_y, ICON_SIZE, ICON_SIZE, icon_color)
+
+    # Pass 3: draw all labels
+    for i, (name, icon_color, icon_bmp) in enumerate(apps_meta):
+        x, y, w, h = _tile_rect(i, scroll_y)
+        if y + h < 0 or y >= 240:
+            continue
+        icon_y = y + 10
+        text_w = display.write_len(font, name)
+        text_x = x + (w - text_w) // 2
+        text_y = icon_y + ICON_SIZE + 8
+        if 0 <= text_y and text_y + font.HEIGHT <= 240:
+            display.write(font, name, text_x, text_y, 0xFFFF, TILE_BG)
 
 
 def _hit_test(touch_x, touch_y, num_apps, scroll_y):
@@ -110,7 +140,7 @@ def _unload_app(module_path):
 
 def run(app_paths, display, touch, font):
     """Main launcher loop."""
-    # Load app metadata and icons
+    # Load app metadata (names and fallback colors)
     apps_meta = []
     for path in app_paths:
         mod = _load_app(path)
@@ -121,8 +151,15 @@ def run(app_paths, display, touch, font):
         else:
             name = path
             icon_color = 0xF800  # red = failed
+        apps_meta.append((name, icon_color, None))
+
+    # Load icons separately after all gc.collect() calls are done
+    updated = []
+    for i, path in enumerate(app_paths):
+        name, icon_color, _ = apps_meta[i]
         icon_bmp = _load_icon(path)
-        apps_meta.append((name, icon_color, icon_bmp))
+        updated.append((name, icon_color, icon_bmp))
+    apps_meta = updated
 
     scroll_y = 0
     num_rows = (len(app_paths) + COLS - 1) // COLS

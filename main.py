@@ -47,6 +47,7 @@ def show_error(display, font, error_text):
 APPS = [
     "app_info",
     "app_imu",
+    "app_iping",
 ]
 
 # --- Boot ---
