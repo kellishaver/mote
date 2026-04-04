@@ -49,6 +49,7 @@ APPS = [
     "app_iping",
     "app_ohm",
     "app_swatch",
+    "app_convert",
     "app_info",
 ]
 
