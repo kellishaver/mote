@@ -28,6 +28,11 @@ def init_touch():
     return FT3168()
 
 
+def init_button():
+    from button import HomeButton
+    return HomeButton()
+
+
 def show_error(display, font, error_text):
     """Show a crash screen with the error message."""
     display.fill(display.colorRGB(100, 0, 0))
@@ -64,10 +69,11 @@ try:
     display.write(font, "starting...", 190, 130, display.colorRGB(80, 80, 100))
 
     touch = init_touch()
+    button = init_button()
     gc.collect()
 
     import shell
-    shell.run(APPS, display, touch, font)
+    shell.run(APPS, display, touch, font, button)
 
 except KeyboardInterrupt:
     print("\nInterrupted — returning to REPL")

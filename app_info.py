@@ -3,7 +3,7 @@
 NAME = "Sys Info"
 ICON = 0x07E0  # green
 
-def run(display, touch, font):
+def run(display, touch, font, button):
     import sys
     import gc
     import time
@@ -100,6 +100,9 @@ def run(display, touch, font):
     last_refresh = time.ticks_ms()
 
     while True:
+        if button.check():
+            return
+
         pos = touch.get_touch()
         if pos is not None:
             tx, ty = pos

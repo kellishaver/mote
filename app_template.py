@@ -4,16 +4,18 @@
 # Each app must define:
 #   NAME  — display name (max ~12 chars)
 #   ICON  — a colour565 integer used as a solid tile colour in the launcher
-#   run(display, touch, font) — called by the shell; runs until the user exits
+#   run(display, touch, font, button) — called by the shell; runs until the user exits
 #
 # The run() function receives:
 #   display — the amoled.AMOLED display object (536x240 landscape)
 #   touch   — the FT3168 touch driver (get_touch() returns (x, y) or None)
 #   font    — the bitmap font module for display.write()
+#   button  — the HomeButton driver (button.check() returns True on short press)
 #
 # To exit back to the launcher, simply return from run().
 # The shell redraws itself after run() returns.
-# Navigation: a physical button will be used to return to the launcher.
+# Short-press the home button (GPIO 10) to return to the launcher.
+# Long-press (2s) to enter deep sleep (hibernate).
 #
 # Guidelines:
 # - Do not call display.deinit() — the shell owns the display lifecycle
@@ -24,7 +26,7 @@
 NAME = "Template"
 ICON = 0x4208  # dark grey in colour565
 
-def run(display, touch, font):
+def run(display, touch, font, button):
     import time
 
     BG = display.colorRGB(30, 30, 30)
@@ -32,6 +34,8 @@ def run(display, touch, font):
     display.write(font, NAME, 10, 10, 0xFFFF)
 
     while True:
+        if button.check():
+            return
         pos = touch.get_touch()
         if pos is not None:
             pass  # handle touch

@@ -28,6 +28,11 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 | Touch I2C SDA | 40   |
 | Touch INT     | 41   |
 | AMOLED RESET  | 17   |
+| Home button   | 10   |
+| User GPIO 1   | 2    |
+| User GPIO 2   | 3    |
+| User GPIO 3   | 4    |
+| User GPIO 4   | 16   |
 
 ## Language & Runtime
 
@@ -47,6 +52,7 @@ src/
 ├── ARCHITECTURE.md      # Shell architecture decisions
 ├── main.py              # Entry point — inits hardware, runs shell
 ├── shell.py             # App launcher grid with touch navigation
+├── button.py            # Home button driver (GPIO 10)
 ├── ft3168.py            # FT3168 touch driver
 ├── app_template.py      # App interface template
 ├── app_color.py         # RGB colour picker app

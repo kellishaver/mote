@@ -138,7 +138,7 @@ def _unload_app(module_path):
     gc.collect()
 
 
-def run(app_paths, display, touch, font):
+def run(app_paths, display, touch, font, button):
     """Main launcher loop."""
     # Load app metadata (names and fallback colors)
     apps_meta = []
@@ -168,6 +168,8 @@ def run(app_paths, display, touch, font):
     _draw_launcher(display, font, apps_meta, scroll_y)
 
     while True:
+        button.check()
+
         pos = touch.get_touch()
         if pos is None:
             time.sleep_ms(20)
@@ -208,7 +210,7 @@ def run(app_paths, display, touch, font):
         mod = _load_app(app_paths[idx])
         if mod and hasattr(mod, "run"):
             try:
-                mod.run(display, touch, font)
+                mod.run(display, touch, font, button)
             except KeyboardInterrupt:
                 raise
             except Exception as e:

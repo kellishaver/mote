@@ -23,6 +23,29 @@ A MicroPython-based prototyping OS for the **Waveshare ESP32-S3-Touch-AMOLED-1.9
 | Touch I2C SCL / SDA | 39 / 40 |
 | Touch INT (wake) | 41 |
 | AMOLED RESET | 17 |
+| Home button | 10 |
+
+### Home Button
+
+A momentary push button wired between **GPIO 10** and **GND** serves as the home button.
+
+- **Short press:** Returns to the app launcher from any app.
+- **Long press (2 seconds):** Enters deep sleep (hibernate). Press the button again to wake.
+
+GPIO 10 is configured with an internal pull-up resistor, so no external pull-up is needed. Just connect one leg of the button to GPIO 10 (header pin 31, left side) and the other to any GND pin.
+
+### User GPIO Pins
+
+Four GPIO pins are reserved for user projects. These are accessible on the board headers and free of conflicts with display, touch, IMU, and other onboard peripherals.
+
+| Function | GPIO | Header Pin | Notes |
+|----------|------|-----------|-------|
+| User GPIO 1 | 2 | Pin 6 (right) | ADC1 capable |
+| User GPIO 2 | 3 | Pin 7 (right) | ADC1 capable |
+| User GPIO 3 | 4 | Pin 32 (left) | Digital I/O |
+| User GPIO 4 | 16 | Pin 34 (left) | Digital I/O |
+
+GPIOs 2 and 3 are on ADC1, which works alongside WiFi (unlike ADC2). All four support digital I/O and PWM.
 
 ## Firmware
 
@@ -69,7 +92,15 @@ mpremote connect $PORT mkdir /icons
 mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
+mpremote connect $PORT cp button.py :
 mpremote connect $PORT cp ft3168.py :
+mpremote connect $PORT cp uping.py :
+mpremote connect $PORT cp qmi8658.py :
+mpremote connect $PORT cp app_imu.py :
+mpremote connect $PORT cp app_iping.py :
+mpremote connect $PORT cp app_ohm.py :
+mpremote connect $PORT cp app_swatch.py :
+mpremote connect $PORT cp app_convert.py :
 mpremote connect $PORT cp app_info.py :
 mpremote connect $PORT cp app_template.py :
 mpremote connect $PORT cp fonts/large.py :/fonts/large.py
@@ -127,6 +158,7 @@ mote/
 ├── main.py              # Boot entry - inits hardware, runs shell
 ├── boot.py              # WiFi connection on boot
 ├── shell.py             # App launcher grid with touch navigation
+├── button.py            # Home button driver (GPIO 10)
 ├── ft3168.py            # FT3168 capacitive touch driver
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
 ├── uping.py             # ICMP ping module
@@ -157,14 +189,16 @@ Each app is a Python module with three exports:
 NAME = "My App"      # Display name (max ~12 chars)
 ICON = 0xF81F        # Fallback colour565 for the launcher tile
 
-def run(display, touch, font):
+def run(display, touch, font, button):
     # Your app code here
     # display - amoled.AMOLED object (536x240)
     # touch   - FT3168 driver (touch.get_touch() returns (x, y) or None)
     # font    - bitmap font for display.write(font, text, x, y, color)
+    # button  - HomeButton driver (button.check() returns True on short press)
     #
     # Return from run() to go back to the launcher.
-    # A physical button will handle returning to the launcher.
+    # Call button.check() each loop iteration — it returns True on
+    # short press (return to launcher) and auto-hibernates on long press.
     pass
 ```
 
@@ -183,7 +217,8 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 ## Navigation
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
-- **Inside apps:** A physical button (to be added with enclosure) returns to the launcher. During development, use Ctrl-C from mpremote.
+- **Inside apps:** Short-press the home button to return to the launcher.
+- **Hibernate:** Long-press the home button (2 seconds) from anywhere to enter deep sleep. Press again to wake.
 
 ## Known Issues
 

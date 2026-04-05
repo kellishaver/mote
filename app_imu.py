@@ -4,7 +4,7 @@
 NAME = "IMU"
 ICON = 0xFBE0  # orange
 
-def run(display, touch, font):
+def run(display, touch, font, button):
     import time
     from qmi8658 import QMI8658
 
@@ -85,6 +85,9 @@ def run(display, touch, font):
     draw_frame()
 
     while True:
+        if button.check():
+            return
+
         # Read IMU
         accel, gyro = imu.read_all()
         vals = accel if screen == 0 else gyro
