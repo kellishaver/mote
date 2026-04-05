@@ -15,7 +15,7 @@ def run(display, touch, font):
     H = display.height()
     BG = display.colorRGB(15, 15, 30)
     WHITE = 0xFFFF
-    LABEL = display.colorRGB(0, 160, 255)
+    LABEL = display.colorRGB(255, 140, 0)
     GREY = display.colorRGB(100, 100, 120)
     LABEL_W = 170  # left column width
 

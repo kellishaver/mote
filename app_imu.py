@@ -16,7 +16,7 @@ def run(display, touch, font):
     ORANGE = display.colorRGB(255, 140, 0)
     WHITE = 0xFFFF
     GREY = display.colorRGB(60, 60, 60)
-    DIM = display.colorRGB(100, 100, 100)
+    DIM = display.colorRGB(150, 150, 160)
 
 
     # Arrow tap zones

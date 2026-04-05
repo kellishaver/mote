@@ -104,6 +104,22 @@ Create a `settings.json` with your WiFi credentials and owner info:
 
 This file is gitignored. WiFi connects automatically on boot via `boot.py`.
 
+## Screenshots
+
+| Boot | Launcher | IMU (Accel) |
+|------|----------|-------------|
+| ![Boot](screenshots/01_boot@2x.png) | ![Launcher](screenshots/02_launcher@2x.png) | ![IMU Accel](screenshots/03_imu_accel@2x.png) |
+
+| IMU (Gyro) | IPing | Ohm's Law |
+|------------|-------|-----------|
+| ![IMU Gyro](screenshots/04_imu_gyro@2x.png) | ![IPing](screenshots/05_iping@2x.png) | ![Ohm's Law](screenshots/06_ohm@2x.png) |
+
+| Swatch | MM:IN | Sys Info |
+|--------|-------|---------|
+| ![Swatch](screenshots/07_swatch@2x.png) | ![MM:IN](screenshots/08_convert@2x.png) | ![Sys Info](screenshots/09_info@2x.png) |
+
+Screenshots are simulated renders. Generate with `python3 tools/gen_screenshots.py`.
+
 ## Project Structure
 
 ```
@@ -112,15 +128,24 @@ mote/
 ├── boot.py              # WiFi connection on boot
 ├── shell.py             # App launcher grid with touch navigation
 ├── ft3168.py            # FT3168 capacitive touch driver
+├── qmi8658.py           # QMI8658 6-axis IMU driver
+├── uping.py             # ICMP ping module
+├── app_imu.py           # IMU viewer (accel + gyro)
+├── app_iping.py         # Network ping diagnostic
+├── app_ohm.py           # Ohm's Law calculator
+├── app_swatch.py        # RGB color mixer
+├── app_convert.py       # MM/inches converter
+├── app_info.py          # System info (always last in launcher)
 ├── app_template.py      # App interface template
-├── app_info.py          # System info app
 ├── settings.json        # User settings (gitignored)
 ├── fonts/
 │   └── large.py         # Bitmap font, 31px tall
 ├── icons/               # 40x40 RGB565 icon bitmaps
+├── screenshots/         # Simulated UI screenshots
 ├── examples/            # Demo/test scripts from development
 ├── tools/
-│   └── png_to_icon.py   # PNG to colour565 converter
+│   ├── png_to_icon.py   # PNG to colour565 icon converter
+│   └── gen_screenshots.py  # Screenshot generator
 └── docs/                # Flash instructions, known issues
 ```
 
@@ -165,4 +190,5 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 - `display.text(None, ...)` and `amoled.TTF()` cause hard C-level crashes. Use `display.write(font, ...)` with the bitmap font only.
 - The FT3168 touch controller hibernates when idle. The driver retries wake indefinitely on boot.
 - Drawing text partially off-screen crashes the C display driver. Always clip to fully on-screen coordinates.
+- Interleaving `fill_rect` and `bitmap` calls at adjacent positions causes silent render failures. Use separate draw passes (backgrounds, then icons, then text).
 - No hardware scroll support on the RM67162.
