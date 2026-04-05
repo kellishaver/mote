@@ -235,15 +235,15 @@
         <div class="framework-point">
           <div class="point-num">03</div>
           <div class="point-text">
-            <h4>run(display, touch, font)</h4>
+            <h4>run(display, touch, font, button)</h4>
             <p>Your app's entry point. Return from <span class="inline-code">run()</span> to exit back to the launcher. The shell handles everything else — crash recovery, memory cleanup, redraw.</p>
           </div>
         </div>
         <div class="framework-point">
           <div class="point-num">04</div>
           <div class="point-text">
-            <h4>Long press → home</h4>
-            <p>A long press anywhere returns to the launcher. No dedicated back button required — keeps the hardware simple.</p>
+            <h4>Home button (GPIO 10)</h4>
+            <p>Short press the physical home button to return to the launcher. Long press (2s) to enter deep sleep — press again to wake.</p>
           </div>
         </div>
       </div>
@@ -262,10 +262,11 @@
 <span class="var">NAME</span> = <span class="str">"My App"</span>
 <span class="var">ICON</span> = <span class="var">0xF81F</span>  <span class="cm"># colour565 fallback</span>
 
-<span class="kw">def</span> <span class="fn">run</span>(display, touch, font):
+<span class="kw">def</span> <span class="fn">run</span>(display, touch, font, button):
     <span class="cm"># display  → amoled.AMOLED (536×240)</span>
     <span class="cm"># touch    → FT3168 driver</span>
     <span class="cm"># font     → 31px bitmap font</span>
+    <span class="cm"># button   → HomeButton driver</span>
 
     display.<span class="fn">fill</span>(<span class="var">0x0000</span>)
     display.<span class="fn">write</span>(
@@ -275,13 +276,12 @@
         <span class="var">0xF5A6</span>  <span class="cm"># orange</span>
     )
 
-    <span class="cm"># loop until touch or long-press</span>
     <span class="kw">while True</span>:
+        <span class="kw">if</span> button.<span class="fn">check</span>():
+            <span class="kw">return</span>  <span class="cm"># back to launcher</span>
         t = touch.<span class="fn">get_touch</span>()
         <span class="kw">if</span> t:
-            <span class="kw">break</span>
-
-    <span class="kw">return</span>  <span class="cm"># back to launcher</span></pre>
+            <span class="kw">pass</span>  <span class="cm"># handle touch</span></pre>
     </div>
   </div>
 </section>
@@ -350,6 +350,7 @@ esptool.py --chip esp32s3 \
 mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
+mpremote connect $PORT cp button.py :
 
 <span class="cm"># upload your settings</span>
 mpremote connect $PORT \
