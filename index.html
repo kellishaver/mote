@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mote. — a tiny open-source prototyping OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mote.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">mote<span>.</span></div>
+  <ul>
+    <li><a href="#apps">Apps</a></li>
+    <li><a href="#hardware">Hardware</a></li>
+    <li><a href="#framework">Build</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#parts">Parts</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div style="position:relative; z-index:1;">
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-eyebrow fade-in">Open Source · MicroPython · ESP32-S3</div>
+    <h1 class="fade-in">mote<span class="dot">.</span></h1>
+    <p class="hero-sub fade-in">// a tiny prototyping OS</p>
+    <p class="hero-desc fade-in">
+      A <strong>touch-navigable app launcher</strong> and open framework for the Waveshare ESP32-S3 AMOLED board. 
+      Swap batteries, build apps, 3D print a case. Everything is open — the firmware, the apps, the STL files, all of it.
+    </p>
+    <div class="btn-group fade-in">
+      <a href="https://github.com/kellishaver/mote" class="btn btn-primary">↗ GitHub</a>
+      <a href="#install" class="btn btn-secondary">Get Started</a>
+      <a href="#parts" class="btn btn-secondary">Parts List</a>
+    </div>
+  </div>
+
+  <!-- DEVICE MOCKUP -->
+  <div class="hero-device">
+    <div class="device-frame">
+      <img src="./img/02_launcher.png">
+      <div class="device-label">536×240 AMOLED · touch · WiFi · IMU</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-value">6</div>
+      <div class="stat-label">Built-in apps</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">536×240</div>
+      <div class="stat-label">AMOLED resolution</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">7.8MB</div>
+      <div class="stat-label">Free RAM at idle</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">~45min</div>
+      <div class="stat-label">Print time for case</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- APPS -->
+<section id="apps">
+  <div class="section-header">
+    <div class="section-tag">Applications</div>
+    <h2>Ships with six apps.<br>Write your own in minutes.</h2>
+  </div>
+  <div class="apps-grid">
+    <div class="app-card">
+      <div class="app-card-tag">sensor</div>
+      <div class="app-card-icon"><img src="img/icons/app_imu.png"></div>
+      <h3>IMU Viewer</h3>
+      <img src="img/screenshots/04_imu_gyro.png" class="screenshot">
+      <p>Live accelerometer and gyroscope data from the onboard QMI8658. Swipe between accel (g) and gyro (dps) screens.</p>
+    </div>
+    <div class="app-card">
+      <div class="app-card-tag">network</div>
+      <div class="app-card-icon"><img src="img/icons/app_iping.png"></div>
+      <h3>IPing</h3>
+      <img src="img/screenshots/05_iping.png" class="screenshot">
+      <p>Enter any IP address and ping it. Shows response time in ms with a rolling 3-result history. Times out after 20 seconds.</p>
+    </div>
+    <div class="app-card">
+      <div class="app-card-tag">calculator</div>
+      <div class="app-card-icon"><img src="img/icons/app_ohm.png"></div>
+      <h3>Ohm's Law</h3>
+      <img src="img/screenshots/06_ohm.png" class="screenshot">
+      <p>Enter any two of V, I, R and calculate the third. Essential bench tool. The calculated result highlights in green.</p>
+    </div>
+    <div class="app-card">
+      <div class="app-card-tag">studio</div>
+      <div class="app-card-icon"><img src="img/icons/app_swatch.png"></div>
+      <h3>Swatch</h3>
+      <img src="img/screenshots/07_swatch.png" class="screenshot">
+      <p>RGB sliders with a live color preview and hex value. Save your last 3 colors. Built for matching real-world pigments and materials.</p>
+    </div>
+    <div class="app-card">
+      <div class="app-card-tag">converter</div>
+      <div class="app-card-icon"><img src="img/icons/app_convert.png"></div>
+      <h3>MM:IN</h3>
+      <img src="img/screenshots/08_convert.png" class="screenshot">
+      <p>Millimeters to inches and back. Tap either field, type a value, the other updates instantly. No calculate button needed.</p>
+    </div>
+    <div class="app-card">
+      <div class="app-card-tag">system</div>
+      <div class="app-card-icon"><img src="img/icons/app_info.png"></div>
+      <h3>Sys Info</h3>
+      <img src="img/screenshots/09_info.png" class="screenshot">
+      <p>Board, firmware version, MAC address, free RAM, display specs, WiFi network, and battery percentage at a glance.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- HARDWARE -->
+<section id="hardware">
+  <div class="section-header">
+    <div class="section-tag">Hardware</div>
+    <h2>One board.<br>Everything built in.</h2>
+  </div>
+  <div class="specs-layout">
+    <div class="spec-table">
+      <div class="spec-row">
+        <div class="spec-key">Board</div>
+        <div class="spec-val spec-highlight">Waveshare ESP32-S3 AMOLED 1.91</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">MCU</div>
+        <div class="spec-val">ESP32-S3R8, dual-core LX7, 240MHz</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Flash / PSRAM</div>
+        <div class="spec-val">16MB / 8MB Octal</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Display</div>
+        <div class="spec-val">1.91" AMOLED, 536×240, RM67162 over QSPI</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Touch</div>
+        <div class="spec-val">FT3168 capacitive, I2C</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">IMU</div>
+        <div class="spec-val">QMI8658 6-axis (accel + gyro)</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">WiFi</div>
+        <div class="spec-val">802.11 b/g/n 2.4GHz</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Bluetooth</div>
+        <div class="spec-val">BLE 5.0</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Battery</div>
+        <div class="spec-val">JST MX 1.25mm LiPo header with charging</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Runtime</div>
+        <div class="spec-val spec-highlight">MicroPython 1.27.0</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="code-dot dot-r"></div>
+            <div class="code-dot dot-y"></div>
+            <div class="code-dot dot-g"></div>
+          </div>
+          <div class="code-filename">settings.json</div>
+        </div>
+        <pre>{
+  <span class="str">"wifi"</span>: {
+    <span class="str">"ssid"</span>: <span class="str">"YourNetwork"</span>,
+    <span class="str">"password"</span>: <span class="str">"YourPassword"</span>
+  },
+  <span class="str">"owner"</span>: {
+    <span class="str">"name"</span>: <span class="str">"Your Name"</span>,
+    <span class="str">"email"</span>: <span class="str">"<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="651c0a1025001d04081509004b060a08">[email&#160;protected]</a>"</span>
+  }
+}</pre>
+      </div>
+      <p style="font-size:0.8rem; color:var(--text-dim); margin-top:1rem; line-height:1.6;">
+        Drop a <span class="inline-code">settings.json</span> on the device to configure WiFi and owner info. 
+        No on-screen keyboard needed — this is a dev tool, so configure it like one.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- APP FRAMEWORK -->
+<section id="framework">
+  <div class="section-header">
+    <div class="section-tag">App Framework</div>
+    <h2>Three exports.<br>That's the whole API.</h2>
+  </div>
+  <div class="framework-layout">
+    <div>
+      <div class="framework-points">
+        <div class="framework-point">
+          <div class="point-num">01</div>
+          <div class="point-text">
+            <h4>NAME — display label</h4>
+            <p>What shows up in the launcher tile. Keep it under ~12 characters.</p>
+          </div>
+        </div>
+        <div class="framework-point">
+          <div class="point-num">02</div>
+          <div class="point-text">
+            <h4>ICON — fallback tile color</h4>
+            <p>A colour565 value used if no icon bitmap is found in <span class="inline-code">/icons/</span>.</p>
+          </div>
+        </div>
+        <div class="framework-point">
+          <div class="point-num">03</div>
+          <div class="point-text">
+            <h4>run(display, touch, font)</h4>
+            <p>Your app's entry point. Return from <span class="inline-code">run()</span> to exit back to the launcher. The shell handles everything else — crash recovery, memory cleanup, redraw.</p>
+          </div>
+        </div>
+        <div class="framework-point">
+          <div class="point-num">04</div>
+          <div class="point-text">
+            <h4>Long press → home</h4>
+            <p>A long press anywhere returns to the launcher. No dedicated back button required — keeps the hardware simple.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots">
+          <div class="code-dot dot-r"></div>
+          <div class="code-dot dot-y"></div>
+          <div class="code-dot dot-g"></div>
+        </div>
+        <div class="code-filename">app_template.py</div>
+      </div>
+      <pre><span class="cm"># mote app template</span>
+
+<span class="var">NAME</span> = <span class="str">"My App"</span>
+<span class="var">ICON</span> = <span class="var">0xF81F</span>  <span class="cm"># colour565 fallback</span>
+
+<span class="kw">def</span> <span class="fn">run</span>(display, touch, font):
+    <span class="cm"># display  → amoled.AMOLED (536×240)</span>
+    <span class="cm"># touch    → FT3168 driver</span>
+    <span class="cm"># font     → 31px bitmap font</span>
+
+    display.<span class="fn">fill</span>(<span class="var">0x0000</span>)
+    display.<span class="fn">write</span>(
+        font,
+        <span class="str">"Hello mote."</span>,
+        <span class="var">160</span>, <span class="var">100</span>,
+        <span class="var">0xF5A6</span>  <span class="cm"># orange</span>
+    )
+
+    <span class="cm"># loop until touch or long-press</span>
+    <span class="kw">while True</span>:
+        t = touch.<span class="fn">get_touch</span>()
+        <span class="kw">if</span> t:
+            <span class="kw">break</span>
+
+    <span class="kw">return</span>  <span class="cm"># back to launcher</span></pre>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="section-header">
+    <div class="section-tag">Getting Started</div>
+    <h2>Flash, upload, run.</h2>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:start;">
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Flash custom firmware</h4>
+          <p>Mote requires a custom MicroPython build with the <span class="inline-code">amoled</span> C module. Use <span class="inline-code">firmware_2025_12_15.bin</span> from the dobodu repo.</p>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Upload project files</h4>
+          <p>Use <span class="inline-code">mpremote</span> to copy the core files, fonts, and apps to the board.</p>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Configure settings</h4>
+          <p>Create a <span class="inline-code">settings.json</span> with your WiFi credentials and owner info. The file is gitignored.</p>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Print the case (optional)</h4>
+          <p>STL files included. White PLA, ~45 minutes. M2 screws into the board standoffs. No glue.</p>
+        </div>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots">
+          <div class="code-dot dot-r"></div>
+          <div class="code-dot dot-y"></div>
+          <div class="code-dot dot-g"></div>
+        </div>
+        <div class="code-filename">terminal</div>
+      </div>
+      <pre><span class="cm"># install tools</span>
+pip install esptool mpremote
+
+<span class="cm"># erase + flash firmware</span>
+esptool.py --chip esp32s3 \
+  --port $PORT erase_flash
+
+esptool.py --chip esp32s3 \
+  --port $PORT --baud 460800 \
+  write_flash --flash_size 16MB \
+  0x0 firmware_2025_12_15.bin
+
+<span class="cm"># upload mote</span>
+mpremote connect $PORT cp boot.py :
+mpremote connect $PORT cp main.py :
+mpremote connect $PORT cp shell.py :
+
+<span class="cm"># upload your settings</span>
+mpremote connect $PORT \
+  cp settings.json :settings.json
+
+<span class="cm"># run it</span>
+mpremote connect $PORT run main.py</pre>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- PARTS LIST -->
+<section id="parts">
+  <div class="section-header">
+    <div class="section-tag">Parts List</div>
+    <h2>Everything you need<br>to build a Mote.</h2>
+  </div>
+  <div class="parts-grid">
+    <div class="part-card">
+      <h4>Waveshare ESP32-S3-Touch-AMOLED-1.91</h4>
+      <p>Be sure to confirm that you're ordering the touch version — the non-touch variant exists.</p>
+      <div class="part-note">→ required</div>
+    </div>
+    <div class="part-card">
+      <h4>3.7V LiPo Battery</h4>
+      <p>JST MX 1.25mm connector. Check polarity before connecting — LiPo connectors aren't standardized. ~500mAh recommended.</p>
+      <div class="part-note">→ required for portable use</div>
+    </div>
+    <div class="part-card">
+      <h4>M2 Screws (4×)</h4>
+      <p>For mounting the board to the case via the onboard brass standoffs. Short M2s, 4–6mm length.</p>
+      <div class="part-note">→ required for case</div>
+    </div>
+    <div class="part-card">
+      <h4>Momentary Push Button</h4>
+      <p>You will need this for your physical home button. The case provided accommodates a 12z12mm button.</p>
+      <div class="part-note">→ recommended for case</div>
+    </div>
+    <div class="part-card">
+      <h4>Female Header Pins</h4>
+      <p>Use these to expose GPIO ports on the board. The included case STL files accommodate 4 pins, extend the opening to allow more.</p>
+      <div class="part-note">→ required for external GPIO</div>
+    </div>
+    <div class="part-card">
+      <h4>PLA Filament</h4>
+      <p>If you plan to 3D print the case files. ~45 minute print for both halves. No supports needed with the current design.</p>
+      <div class="part-note">→ required for case</div>
+    </div>
+    <div class="part-card">
+      <h4>USB-C Cable</h4>
+      <p>For flashing and charging. A right-angle adapter helps if you're routing the cable through the case opening rather than adding a magnet adapter.</p>
+      <div class="part-note">→ required for setup</div>
+    </div>
+    <div class="part-card">
+      <h4>Miscellaneous</h4>
+      <p>Having solder and a soldering iron, heat shrink tubing, an X-Acto/hobby knife, sandpaper, and CA glue will all make mote easier to build.</p>
+      <div class="part-note">→ reccommended</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">mote<span>.</span></div>
+    <div class="footer-text">MIT License · One Maker Studio</div>
+    <div class="footer-links">
+      <a href="https://github.com/kellishaver/mote">GitHub</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
