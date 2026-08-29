@@ -10,6 +10,7 @@ def run(display, touch, font):
     import json
     import network
     import os
+    import battery
 
     W = display.width()
     H = display.height()
@@ -71,7 +72,7 @@ def run(display, touch, font):
         lines.append(("Free RAM", "{} KB".format(mem_free // 1024)))
         lines.append(("Display", "536x240 AMOLED"))
         lines.append(("WiFi", get_wifi_status()))
-        lines.append(("Battery", "--"))
+        lines.append(("Battery", battery.status()))
         lines.append(("Owner", owner_name if owner_name else "--"))
         if owner_email:
             lines.append(("", owner_email))

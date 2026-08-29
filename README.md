@@ -23,6 +23,7 @@ A MicroPython-based prototyping OS for the **Waveshare ESP32-S3-Touch-AMOLED-1.9
 | Touch I2C SCL / SDA | 39 / 40 |
 | Touch INT | 41 |
 | AMOLED RESET | 17 |
+| Battery ADC | 1 |
 
 ### Navigation & Power
 
@@ -97,6 +98,7 @@ mpremote connect $PORT cp shell.py :
 mpremote connect $PORT cp ft3168.py :
 mpremote connect $PORT cp uping.py :
 mpremote connect $PORT cp qmi8658.py :
+mpremote connect $PORT cp battery.py :
 mpremote connect $PORT cp app_imu.py :
 mpremote connect $PORT cp app_iping.py :
 mpremote connect $PORT cp app_ohm.py :
@@ -163,6 +165,7 @@ mote/
 ├── shell.py             # App launcher grid with touch navigation
 ├── ft3168.py            # Touch driver + two-finger exit, idle blank
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
+├── battery.py           # LiPo gauge (ADC on GPIO 1)
 ├── uping.py             # ICMP ping module
 ├── app_imu.py           # IMU viewer (accel + gyro)
 ├── app_iping.py         # Network ping diagnostic
@@ -237,6 +240,7 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 - Drawing text partially off-screen crashes the C display driver. Always clip to fully on-screen coordinates.
 - Interleaving `fill_rect` and `bitmap` calls at adjacent positions causes silent render failures. Use separate draw passes (backgrounds, then icons, then text).
 - No hardware scroll support on the RM67162.
+- The board has no PMIC or fuel-gauge IC — an I2C scan finds only the touch controller and the IMU. Battery percentage is estimated from voltage on GPIO 1 against a resting-LiPo curve, so it reads high while charging on USB (the charge voltage is not the resting voltage). Treat it as an indication, not a measurement.
 - The display API is write-only — there is no pixel readback, so an overlay drawn over a running app cannot be erased. Anything drawn on top of an app has to be something the app will redraw itself.
 - Neither CPU sleep mode is usable on this board. `deepsleep` needs an `ext0` wake pin in the RTC domain (GPIO 0-21) and touch INT is GPIO 41; `lightsleep` strands the board outright — USB de-enumerates and touch does not bring it back. Idle therefore blanks the screen and keeps polling, which captures most of the saving since the AMOLED dominates the power budget.
 - The exit gesture is polled by the running app, so a long blocking call freezes it. `app_iping` can be unresponsive for up to its 20s ping timeout.

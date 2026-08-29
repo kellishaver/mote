@@ -28,6 +28,7 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 | Touch I2C SDA | 40   |
 | Touch INT     | 41   |
 | AMOLED RESET  | 17   |
+| Battery ADC   | 1    |
 | User GPIO 1   | 2    |
 | User GPIO 2   | 3    |
 | User GPIO 3   | 4    |
@@ -56,6 +57,7 @@ mote/
 ├── shell.py             # App launcher grid with touch navigation
 ├── ft3168.py            # Touch driver + two-finger exit, idle blank
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
+├── battery.py           # LiPo gauge (ADC on GPIO 1)
 ├── uping.py             # ICMP ping
 ├── app_template.py      # App interface template
 ├── app_imu.py           # IMU viewer
