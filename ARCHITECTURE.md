@@ -2,7 +2,7 @@
 
 ## App Discovery & Loading
 
-Apps are **not auto-discovered**. `main.py` defines an explicit list of module name strings (e.g. `["app_color", "app_info"]`). This avoids filesystem scanning overhead and gives full control over app ordering.
+Apps are **not auto-discovered**. `main.py` defines an explicit list of module name strings (the `APPS` list, e.g. `["app_imu", ..., "app_info"]`). This avoids filesystem scanning overhead and gives full control over app ordering.
 
 Apps are **loaded on demand** via `__import__()` when the user taps a tile. Before importing, any previous cached version is removed from `sys.modules` to ensure a fresh load. After the app's `run()` returns, the module is removed from `sys.modules` and `gc.collect()` is called.
 
@@ -19,6 +19,29 @@ Each app module must export:
 | `run(display, touch, font)` | function | App entry point; returns to exit |
 
 The `run()` function receives the shared display, touch, and font objects. It must not call `display.deinit()`.
+
+Apps must call `touch.get_touch()` every loop iteration even if they ignore the result — it drives both the exit gesture and the idle sleep timer. `touch.home()` returns `True` once after a completed hold, at which point the app should `return`.
+
+## Exit & Power
+
+There is no physical home button. Both exiting an app and idle blanking are driven from `FT3168.get_touch()`, which every app already polls once per loop — so the logic lives in one place and no app carries its own copy.
+
+**Two-finger exit.** `get_touch()` watches the touch count and arms `home()` the moment it sees two points. Coordinates are withheld while two fingers are down and stay withheld until both lift, so the widget underneath can't fire on the way out and releasing over a launcher tile can't relaunch anything.
+
+Measured on this panel: one finger reported two points in **0 of 359** samples, and two fingers reported two in **395 of 395**. No false positives and no dropouts, so the gesture needs no debounce and fires instantly.
+
+This replaced an earlier press-and-hold. Hold was workable — 3052ms measured — but cost far more: a velocity threshold and a travel backstop calibrated against finger creep, plus a 600ms window where coordinates were withheld to stop the widget under the finger repeat-firing. That window broke legitimate interaction: resting a finger on a Swatch slider froze it at 600ms and exited at 3s. Two fingers is unambiguous, so all of it went away — no anchor tracking, no thresholds, no suppression window, no hold feedback.
+
+**Idle blank.** With no touch for `IDLE_MS` (5 min), the driver calls `on_sleep` (which blanks the panel), polls every `IDLE_POLL_MS` until the screen is touched, then calls `on_wake`.
+
+This deliberately does **not** sleep the CPU, and both alternatives were ruled out on hardware:
+
+- `deepsleep` needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0–21). Touch INT is GPIO 41. The old home button was GPIO 10, which is why the previous design could deep sleep — removing the button removed the only wake-capable pin.
+- `lightsleep` was tried and **strands the board**. After one nap the USB device de-enumerates and never returns, and touching the screen does not bring it back; I2C almost certainly does not survive the nap, so the poll can never see a finger. Recovery is the reset button. There is a regression test asserting `lightsleep` stays out.
+
+So idle means "blank the panel and keep polling". The AMOLED dominates the power budget, so blanking captures most of the available saving, and nothing in this path can leave the board unreachable. Real sleep needs a wake-capable pin wired first.
+
+Waking still needs one piece of care: the FT3168 hibernates *itself* and stops answering I2C — the state `__init__` has to pulse INT to escape. Polling `get_raw()` alone would therefore never see the touch, so every `WAKE_NUDGE_POLLS` the controller is pulsed awake and re-probed. INT is deliberately not polled: measured on hardware it fires ~1ms pulses, caught roughly 1% of the time, so it reads like a wake path without being one.
 
 ## Crash Handling
 
@@ -37,20 +60,32 @@ If `main.py` itself crashes (display/touch init failure, shell crash):
 
 ## Persistent State
 
-**None.** No state persists between app launches. Each app starts fresh. If apps need persistence in the future, they should read/write their own files on the VFS.
+The shell holds none — no state is passed between app launches, and each app starts fresh.
+
+Apps that need persistence own their files on the VFS. Currently:
+
+| App | File |
+|-----|------|
+| `app_swatch` | `/swatch_hist.json` — saved colour history |
+| `app_iping` | `/iping_last.txt` — last pinged IP |
+
+`settings.json` (WiFi credentials, owner info) is read by `boot.py` and `app_info`.
 
 ## Launcher Grid Layout
 
 - 3 columns, tiles 170×110 px with 8px horizontal / 5px vertical padding
 - Vertically scrollable via swipe (Y drag > 30px threshold)
 - Tap detection: if the touch starts and ends without exceeding the swipe threshold within 500ms, it's a tap
-- App exit: physical button (TBD in enclosure design). During development, Ctrl-C from mpremote
+- Tile icons: `/icons/<module_name>.bin` (40x40 big-endian RGB565) if present, else the app's `ICON` colour as a solid block
+- App exit: two-finger tap. During development, Ctrl-C from mpremote
+
+Because interleaving `fill_rect` and `bitmap` at adjacent positions silently fails in the C driver, `_draw_launcher` renders in three separate passes: all backgrounds, then all icons, then all labels.
 
 ## Known Limitations
 
 - **No background tasks** — only one app runs at a time; the shell is suspended during app execution
+- **Blocking apps can't be exited** — the exit gesture is polled by the app, so a long blocking call (e.g. `uping.ping()`'s 20s timeout) freezes it until the call returns
 - **No animations** — transitions are instant redraws
 - **Font size** — only one bitmap font (31px) is available; no small font for dense UI
 - **Scroll performance** — full grid redraw on each scroll step; may flicker with many tiles
-- **No app icons** — tiles use solid colour blocks, not bitmap icons
-- **No WiFi/networking** — apps can use `network` directly but there's no shared connection manager
+- **No shared connection manager** — `boot.py` connects WiFi once at startup; apps use `network` directly and there is no reconnect logic

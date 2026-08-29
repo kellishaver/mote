@@ -4,6 +4,8 @@
 
 import gc
 
+BRIGHTNESS = 255
+
 def init_display():
     import amoled
     from machine import Pin, SPI
@@ -19,18 +21,21 @@ def init_display():
     display.reset()
     display.init()
     display.rotation(1)
-    display.brightness(255)
+    display.brightness(BRIGHTNESS)
     return display
 
 
-def init_touch():
+def init_touch(display):
+    """Touch driver, wired to the display so idle can blank the panel."""
     from ft3168 import FT3168
-    return FT3168()
 
+    def on_sleep():
+        display.brightness(0)
 
-def init_button():
-    from button import HomeButton
-    return HomeButton()
+    def on_wake():
+        display.brightness(BRIGHTNESS)
+
+    return FT3168(on_sleep=on_sleep, on_wake=on_wake)
 
 
 def show_error(display, font, error_text):
@@ -68,12 +73,11 @@ try:
     display.write(font, "mote", 220, 90, display.colorRGB(255, 140, 0))
     display.write(font, "starting...", 190, 130, display.colorRGB(80, 80, 100))
 
-    touch = init_touch()
-    button = init_button()
+    touch = init_touch(display)
     gc.collect()
 
     import shell
-    shell.run(APPS, display, touch, font, button)
+    shell.run(APPS, display, touch, font)
 
 except KeyboardInterrupt:
     print("\nInterrupted — returning to REPL")

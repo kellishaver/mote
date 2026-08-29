@@ -21,18 +21,19 @@ A MicroPython-based prototyping OS for the **Waveshare ESP32-S3-Touch-AMOLED-1.9
 | QSPI_CS | 6 |
 | QSPI_D0 / D1 / D2 / D3 | 18 / 7 / 48 / 5 |
 | Touch I2C SCL / SDA | 39 / 40 |
-| Touch INT (wake) | 41 |
+| Touch INT | 41 |
 | AMOLED RESET | 17 |
-| Home button | 10 |
 
-### Home Button
+### Navigation & Power
 
-A momentary push button wired between **GPIO 10** and **GND** serves as the home button.
+No physical buttons — everything is on the touchscreen.
 
-- **Short press:** Returns to the app launcher from any app.
-- **Long press (2 seconds):** Enters deep sleep (hibernate). Press the button again to wake.
+- **Return to launcher:** tap with **two fingers** anywhere on the screen.
+- **Idle blank:** after **5 minutes** with no touch, the screen blanks. Touch it to wake — you come back to whatever was on screen, not a reboot.
 
-GPIO 10 is configured with an internal pull-up resistor, so no external pull-up is needed. Just connect one leg of the button to GPIO 10 (header pin 31, left side) and the other to any GND pin.
+Both are handled inside the touch driver, so every app gets them for free. Apps only need to call `touch.get_touch()` each loop and check `touch.home()`.
+
+> Earlier versions used a physical home button on GPIO 10. That pin is now free for your own use.
 
 ### User GPIO Pins
 
@@ -44,6 +45,7 @@ Four GPIO pins are reserved for user projects. These are accessible on the board
 | User GPIO 2 | 3 | Pin 7 (right) | ADC1 capable |
 | User GPIO 3 | 4 | Pin 32 (left) | Digital I/O |
 | User GPIO 4 | 16 | Pin 34 (left) | Digital I/O |
+| User GPIO 5 | 10 | Pin 31 (left) | Freed by the touch-gesture home button |
 
 GPIOs 2 and 3 are on ADC1, which works alongside WiFi (unlike ADC2). All four support digital I/O and PWM.
 
@@ -92,7 +94,6 @@ mpremote connect $PORT mkdir /icons
 mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
-mpremote connect $PORT cp button.py :
 mpremote connect $PORT cp ft3168.py :
 mpremote connect $PORT cp uping.py :
 mpremote connect $PORT cp qmi8658.py :
@@ -106,7 +107,9 @@ mpremote connect $PORT cp app_template.py :
 mpremote connect $PORT cp fonts/large.py :/fonts/large.py
 
 # Upload icons (optional - falls back to solid colours)
-mpremote connect $PORT cp icons/app_info.bin :/icons/app_info.bin
+# .bin files are gitignored; generate them from the committed PNGs first:
+for f in icons/*.png; do python3 tools/png_to_icon.py "$f"; done
+mpremote connect $PORT cp icons/*.bin :/icons/
 
 # Upload your settings
 cp settings.json my_settings.json  # edit with your WiFi creds and owner info
@@ -158,8 +161,7 @@ mote/
 ├── main.py              # Boot entry - inits hardware, runs shell
 ├── boot.py              # WiFi connection on boot
 ├── shell.py             # App launcher grid with touch navigation
-├── button.py            # Home button driver (GPIO 10)
-├── ft3168.py            # FT3168 capacitive touch driver
+├── ft3168.py            # Touch driver + two-finger exit, idle blank
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
 ├── uping.py             # ICMP ping module
 ├── app_imu.py           # IMU viewer (accel + gyro)
@@ -175,10 +177,12 @@ mote/
 ├── icons/               # 40x40 RGB565 icon bitmaps
 ├── screenshots/         # Simulated UI screenshots
 ├── examples/            # Demo/test scripts from development
+├── test_touch.py        # Host-side self-check for the exit gesture
 ├── tools/
 │   ├── png_to_icon.py   # PNG to colour565 icon converter
-│   └── gen_screenshots.py  # Screenshot generator
-└── docs/                # Flash instructions, known issues
+│   ├── gen_screenshots.py  # Screenshot generator
+│   └── touch_diag.py    # On-board check for the two-finger exit gesture
+└── case/                # 3D-printable enclosure (STL + gcode)
 ```
 
 ## Writing Apps
@@ -189,18 +193,22 @@ Each app is a Python module with three exports:
 NAME = "My App"      # Display name (max ~12 chars)
 ICON = 0xF81F        # Fallback colour565 for the launcher tile
 
-def run(display, touch, font, button):
-    # Your app code here
+def run(display, touch, font):
     # display - amoled.AMOLED object (536x240)
-    # touch   - FT3168 driver (touch.get_touch() returns (x, y) or None)
+    # touch   - FT3168 driver
+    #           touch.get_touch() returns (x, y) or None
+    #           touch.home()      returns True after a two-finger tap
     # font    - bitmap font for display.write(font, text, x, y, color)
-    # button  - HomeButton driver (button.check() returns True on short press)
     #
     # Return from run() to go back to the launcher.
-    # Call button.check() each loop iteration — it returns True on
-    # short press (return to launcher) and auto-hibernates on long press.
-    pass
+    while True:
+        if touch.home():
+            return
+        pos = touch.get_touch()
+        ...
 ```
+
+Call `touch.get_touch()` every iteration even if you ignore the result — it drives the exit gesture and the idle sleep timer. An app that stops polling it cannot be exited without a reset, so avoid blocking for more than about a second at a time.
 
 To add an app to the launcher, add its module name to the `APPS` list in `main.py`.
 
@@ -212,13 +220,15 @@ Icons are optional 40x40 pixel bitmaps in RGB565 format. To create one:
 python3 ./tools/png_to_icon.py input.png [output.bin]
 ```
 
+Requires Pillow (`pip install Pillow`).
+
 The `.bin` filename must match the app module name. Upload to `/icons/` on the board. If no icon exists, the launcher uses the `ICON` colour constant.
 
 ## Navigation
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
-- **Inside apps:** Short-press the home button to return to the launcher.
-- **Hibernate:** Long-press the home button (2 seconds) from anywhere to enter deep sleep. Press again to wake.
+- **Inside apps:** Tap with two fingers to return to the launcher.
+- **Idle blank:** After 5 minutes idle the screen blanks. Touch to wake. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
 
 ## Known Issues
 
@@ -227,3 +237,8 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 - Drawing text partially off-screen crashes the C display driver. Always clip to fully on-screen coordinates.
 - Interleaving `fill_rect` and `bitmap` calls at adjacent positions causes silent render failures. Use separate draw passes (backgrounds, then icons, then text).
 - No hardware scroll support on the RM67162.
+- The display API is write-only — there is no pixel readback, so overlays drawn over app content cannot be erased. This is why the hold cue is a brightness ramp.
+- Neither CPU sleep mode is usable on this board. `deepsleep` needs an `ext0` wake pin in the RTC domain (GPIO 0-21) and touch INT is GPIO 41; `lightsleep` strands the board outright — USB de-enumerates and touch does not bring it back. Idle therefore blanks the screen and keeps polling, which captures most of the saving since the AMOLED dominates the power budget.
+- The exit gesture is polled by the running app, so a long blocking call freezes it. `app_iping` can be unresponsive for up to its 20s ping timeout.
+- The FT3168's INT line fires ~1ms pulses rather than holding low, so it is useless as a polled wake signal and the sleep loop does not use it. Waking relies on I2C polling (the panel self-wakes on touch) plus a ~1s `wake()` nudge as backstop, so a very quick flick may take up to a second to register.
+- The exit gesture needs a panel that reports two touch points. This one does reliably (395/395 samples), and never reports two for a single finger (0/359). Run `tools/touch_diag.py` to confirm on a different panel.

@@ -4,7 +4,7 @@
 NAME = "Ohm's Law"
 ICON = 0xFFE0  # yellow
 
-def run(display, touch, font, button):
+def run(display, touch, font):
     import time
 
     W = display.width()
@@ -300,7 +300,7 @@ def run(display, touch, font, button):
     draw_main()
 
     while True:
-        if button.check():
+        if touch.home():
             return
 
         pos = touch.get_touch()

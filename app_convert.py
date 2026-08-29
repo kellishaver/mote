@@ -3,7 +3,7 @@
 NAME = "MM:IN"
 ICON = 0xFD20  # orange
 
-def run(display, touch, font, button):
+def run(display, touch, font):
     import time
 
     W = display.width()
@@ -149,7 +149,7 @@ def run(display, touch, font, button):
     draw_all()
 
     while True:
-        if button.check():
+        if touch.home():
             return
 
         pos = touch.get_touch()

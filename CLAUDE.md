@@ -28,11 +28,11 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 | Touch I2C SDA | 40   |
 | Touch INT     | 41   |
 | AMOLED RESET  | 17   |
-| Home button   | 10   |
 | User GPIO 1   | 2    |
 | User GPIO 2   | 3    |
 | User GPIO 3   | 4    |
 | User GPIO 4   | 16   |
+| User GPIO 5   | 10   |
 
 ## Language & Runtime
 
@@ -46,23 +46,32 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 
 ## Project Structure
 
+Everything runs from the board's filesystem root — there is no `src/` directory.
+
 ```
-src/
-├── CLAUDE.md
+mote/
 ├── ARCHITECTURE.md      # Shell architecture decisions
+├── boot.py              # WiFi connection, runs before main.py
 ├── main.py              # Entry point — inits hardware, runs shell
 ├── shell.py             # App launcher grid with touch navigation
-├── button.py            # Home button driver (GPIO 10)
-├── ft3168.py            # FT3168 touch driver
+├── ft3168.py            # Touch driver + two-finger exit, idle blank
+├── qmi8658.py           # QMI8658 6-axis IMU driver
+├── uping.py             # ICMP ping
 ├── app_template.py      # App interface template
-├── app_color.py         # RGB colour picker app
-├── app_info.py          # System info app
-├── hello_screen.py      # Phase 1 display test
-├── touch_test.py        # Phase 2 touch test
-├── tap_zones.py         # Phase 2 zone demo
+├── app_imu.py           # IMU viewer
+├── app_iping.py         # Network ping diagnostic
+├── app_ohm.py           # Ohm's Law calculator
+├── app_swatch.py        # RGB colour mixer
+├── app_convert.py       # MM/inches converter
+├── app_info.py          # System info (always last in launcher)
+├── settings.json        # WiFi + owner info (gitignored)
 ├── fonts/
 │   └── large.py         # Bitmap font, 31px tall
-└── docs/                # Flash instructions, known issues
+├── icons/               # 40x40 RGB565 launcher icons
+├── examples/            # Demo/test scripts from development
+├── test_touch.py        # Host-side self-check for the exit gesture
+├── tools/               # Host-side PNG->icon and screenshot generators
+└── case/                # 3D-printable enclosure (STL + gcode)
 ```
 
 ## Coding Conventions
@@ -71,7 +80,7 @@ src/
 - **Naming:** `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_CASE` for constants/pin assignments
 - **Imports:** Use specific imports (`from machine import Pin, I2C`) — avoid wildcard imports
 - **Error handling:** Use `try/except` around hardware I/O; always release resources in `finally`
-- **Pin definitions:** Centralize in `config.py` — never hardcode pin numbers in drivers
+- **Pin definitions:** Each driver owns its pins as module-level constants with defaults in `__init__` (see `ft3168.py`). There is no `config.py` — don't add one for six constants.
 - **Secrets:** WiFi passwords, API keys, etc. go in `secrets.py` (gitignored) — never commit credentials
 
 ## Hardware Best Practices
@@ -81,7 +90,7 @@ src/
 - Debounce button/switch inputs (software or hardware)
 - Add small delays (`utime.sleep_ms()`) in tight polling loops to avoid watchdog resets
 - Gracefully handle disconnected or unresponsive peripherals
-- Use `machine.deepsleep()` / `machine.lightsleep()` for battery-powered designs
+- **Do not use `machine.lightsleep()` on this board** — it strands it: USB de-enumerates and touch does not bring it back, recovery is the reset button. `machine.deepsleep()` needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0-21); touch INT is GPIO 41, so nothing currently wired can wake it. For idle power saving, blank the panel with `display.brightness(0)` and keep polling (see `FT3168._idle`).
 
 ## Async Patterns
 
@@ -98,14 +107,15 @@ src/
 
 ## Deployment
 
-- **Firmware:** Flash via `esptool.py` — see `docs/phase1_flash_instructions.md`
+- **Firmware:** Flash via `esptool.py` — see the Firmware section in `README.md`
 - **File upload:** `mpremote` only (no Thonny)
 - **Typical workflow:** `mpremote connect $PORT cp main.py : + run main.py`
-- **Upload + run:** `mpremote connect $PORT cp hello_screen.py : + run hello_screen.py`
+- **Full upload:** see the Setup section in `README.md`
 
 ## Common Pitfalls
 
 - Forgetting `boot.py` runs before `main.py` — keep boot minimal
+- Apps must poll `touch.get_touch()` every loop — it drives the two-finger exit gesture and the idle timer. An app that blocks or stops polling cannot be exited without a reset.
 - Blocking the main loop kills watchdog — always yield or sleep
 - I2C/SPI bus contention when multiple devices share a bus — use locks or sequential access
 - Running out of RAM with large strings/JSON — stream or chunk data

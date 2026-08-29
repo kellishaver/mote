@@ -6,7 +6,7 @@ ICON = 0x04FF  # blue-ish
 
 _STATE_FILE = "/iping_last.txt"
 
-def run(display, touch, font, button):
+def run(display, touch, font):
     import time
     import network
 
@@ -237,7 +237,7 @@ def run(display, touch, font, button):
     draw_main()
 
     while True:
-        if button.check():
+        if touch.home():
             return
 
         pos = touch.get_touch()

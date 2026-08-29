@@ -112,7 +112,7 @@ def _unload_app(module_path):
     gc.collect()
 
 
-def run(app_paths, display, touch, font, button):
+def run(app_paths, display, touch, font):
     """Main launcher loop."""
     # Load app metadata (names and fallback colors)
     apps_meta = []
@@ -142,7 +142,9 @@ def run(app_paths, display, touch, font, button):
     _draw_launcher(display, font, apps_meta, scroll_y)
 
     while True:
-        button.check()
+        # Discard any home gesture made on the launcher itself, so a stale
+        # flag can't bounce the next app straight back here.
+        touch.home()
 
         pos = touch.get_touch()
         if pos is None:
@@ -184,7 +186,7 @@ def run(app_paths, display, touch, font, button):
         mod = _load_app(app_paths[idx])
         if mod and hasattr(mod, "run"):
             try:
-                mod.run(display, touch, font, button)
+                mod.run(display, touch, font)
             except KeyboardInterrupt:
                 raise
             except Exception as e:

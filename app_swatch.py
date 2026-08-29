@@ -5,7 +5,7 @@ ICON = 0xF81F  # magenta
 
 _HIST_FILE = "/swatch_hist.json"
 
-def run(display, touch, font, button):
+def run(display, touch, font):
     import time
     import json
 
@@ -185,7 +185,7 @@ def run(display, touch, font, button):
     draw_all()
 
     while True:
-        if button.check():
+        if touch.home():
             return
 
         pos = touch.get_touch()
