@@ -31,7 +31,6 @@ def run(display, touch, font, button):
     values = ["", "", ""]  # V, I, R as strings
     result_idx = -1  # which field holds the calculated result
     labels = ["V", "mA", "ohm"]
-    units = ["V", "mA", u"\x83\x84"]  # display labels
     error_msg = ""
     editing = False
     edit_field = -1

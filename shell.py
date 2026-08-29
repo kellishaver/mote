@@ -45,32 +45,6 @@ def _tile_rect(index, scroll_y):
     return (x, y, TILE_W, TILE_H)
 
 
-def _draw_tile(display, font, name, icon_color, icon_bmp, x, y, w, h):
-    """Draw a single app tile at (x, y)."""
-    if y + h < 0 or y >= 240:
-        return
-
-    # Tile background
-    display.fill_rect(x, y, w, h, display.colorRGB(45, 45, 60))
-
-    # Icon (bitmap or solid colour)
-    icon_x = x + (w - ICON_SIZE) // 2
-    icon_y = y + 10
-    if 0 <= icon_y and icon_y + ICON_SIZE <= 240:
-        if icon_bmp is not None:
-            display.bitmap(icon_x, icon_y, icon_x + ICON_SIZE - 1,
-                           icon_y + ICON_SIZE - 1, icon_bmp)
-        else:
-            display.fill_rect(icon_x, icon_y, ICON_SIZE, ICON_SIZE, icon_color)
-
-    # Label (centred below icon)
-    text_w = display.write_len(font, name)
-    text_x = x + (w - text_w) // 2
-    text_y = icon_y + ICON_SIZE + 8
-    if 0 <= text_y and text_y + font.HEIGHT <= 240:
-        display.write(font, name, text_x, text_y, 0xFFFF, display.colorRGB(45, 45, 60))
-
-
 def _draw_launcher(display, font, apps_meta, scroll_y):
     """Redraw the full launcher grid."""
     BG = display.colorRGB(15, 15, 25)
