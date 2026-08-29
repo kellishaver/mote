@@ -112,7 +112,7 @@ for f in icons/*.png; do python3 tools/png_to_icon.py "$f"; done
 mpremote connect $PORT cp icons/*.bin :/icons/
 
 # Upload your settings
-cp settings.json my_settings.json  # edit with your WiFi creds and owner info
+cp settings.example.json my_settings.json  # edit with your WiFi creds and owner info
 mpremote connect $PORT cp my_settings.json :settings.json
 
 # Run it
@@ -121,7 +121,7 @@ mpremote connect $PORT run main.py
 
 ### settings.json
 
-Create a `settings.json` with your WiFi credentials and owner info:
+Copy `settings.example.json` and fill in your WiFi credentials and owner info:
 
 ```json
 {
@@ -237,8 +237,8 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 - Drawing text partially off-screen crashes the C display driver. Always clip to fully on-screen coordinates.
 - Interleaving `fill_rect` and `bitmap` calls at adjacent positions causes silent render failures. Use separate draw passes (backgrounds, then icons, then text).
 - No hardware scroll support on the RM67162.
-- The display API is write-only — there is no pixel readback, so overlays drawn over app content cannot be erased. This is why the hold cue is a brightness ramp.
+- The display API is write-only — there is no pixel readback, so an overlay drawn over a running app cannot be erased. Anything drawn on top of an app has to be something the app will redraw itself.
 - Neither CPU sleep mode is usable on this board. `deepsleep` needs an `ext0` wake pin in the RTC domain (GPIO 0-21) and touch INT is GPIO 41; `lightsleep` strands the board outright — USB de-enumerates and touch does not bring it back. Idle therefore blanks the screen and keeps polling, which captures most of the saving since the AMOLED dominates the power budget.
 - The exit gesture is polled by the running app, so a long blocking call freezes it. `app_iping` can be unresponsive for up to its 20s ping timeout.
-- The FT3168's INT line fires ~1ms pulses rather than holding low, so it is useless as a polled wake signal and the sleep loop does not use it. Waking relies on I2C polling (the panel self-wakes on touch) plus a ~1s `wake()` nudge as backstop, so a very quick flick may take up to a second to register.
+- The FT3168's INT line fires ~1ms pulses rather than holding low, so it is useless as a polled wake signal and the idle loop does not use it. Waking relies on I2C polling (the panel self-wakes on touch) plus a ~1s `wake()` nudge as backstop, so a very quick flick may take up to a second to register.
 - The exit gesture needs a panel that reports two touch points. This one does reliably (395/395 samples), and never reports two for a single finger (0/359). Run `tools/touch_diag.py` to confirm on a different panel.

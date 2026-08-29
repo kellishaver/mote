@@ -12,7 +12,7 @@ This is a MicroPython-based hardware project targeting the **Waveshare ESP32-S3-
 - **Display:** 1.91" AMOLED, 536×240, RM67162 controller over QSPI
 - **Touch:** FT3168 over I2C
 - **Display driver library:** dobodu/Lilygo_Waveshare_Amoled_Micropython (`import amoled`, type=0)
-- **Firmware:** Custom MicroPython v1.26.1 build with baked-in amoled C module
+- **Firmware:** Custom MicroPython v1.27.0-preview build with baked-in amoled C module (board reports `1.27.0.preview`, build `27544a2d81`, 2025-12-15)
 
 ### Verified GPIO Assignments — DO NOT CHANGE
 

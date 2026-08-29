@@ -81,7 +81,7 @@ class FT3168:
 
         Drives INT as an output for the pulse and hands it back as a pulled-up
         input, so this is safe to call at any time -- including from the idle
-        sleep loop, where I2C is unresponsive and this is the only way back.
+        idle loop, where I2C is unresponsive and this is the only way back.
         """
         self._int = Pin(self._int_pin, Pin.OUT)
         self._int.value(0)
