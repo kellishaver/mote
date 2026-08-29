@@ -62,7 +62,7 @@
       <div class="stat-label">AMOLED resolution</div>
     </div>
     <div class="stat">
-      <div class="stat-value">7.8MB</div>
+      <div class="stat-value">7.7MB</div>
       <div class="stat-label">Free RAM at idle</div>
     </div>
     <div class="stat">
@@ -86,7 +86,7 @@
       <div class="app-card-icon"><img src="img/icons/app_imu.png"></div>
       <h3>IMU Viewer</h3>
       <img src="img/screenshots/04_imu_gyro.png" class="screenshot">
-      <p>Live accelerometer and gyroscope data from the onboard QMI8658. Swipe between accel (g) and gyro (dps) screens.</p>
+      <p>Live accelerometer and gyroscope data from the onboard QMI8658. Tap the arrows to switch between accel (g) and gyro (dps).</p>
     </div>
     <div class="app-card">
       <div class="app-card-tag">network</div>
@@ -121,7 +121,7 @@
       <div class="app-card-icon"><img src="img/icons/app_info.png"></div>
       <h3>Sys Info</h3>
       <img src="img/screenshots/09_info.png" class="screenshot">
-      <p>Board, firmware version, MAC address, free RAM, display specs, WiFi network, and battery percentage at a glance.</p>
+      <p>Board, firmware version, MAC address, free RAM, display specs, and WiFi network at a glance. Scroll for more.</p>
     </div>
   </div>
 </section>
@@ -174,7 +174,7 @@
       </div>
       <div class="spec-row">
         <div class="spec-key">Runtime</div>
-        <div class="spec-val spec-highlight">MicroPython 1.27.0</div>
+        <div class="spec-val spec-highlight">MicroPython 1.27.0-preview</div>
       </div>
     </div>
 
@@ -235,15 +235,15 @@
         <div class="framework-point">
           <div class="point-num">03</div>
           <div class="point-text">
-            <h4>run(display, touch, font, button)</h4>
+            <h4>run(display, touch, font)</h4>
             <p>Your app's entry point. Return from <span class="inline-code">run()</span> to exit back to the launcher. The shell handles everything else — crash recovery, memory cleanup, redraw.</p>
           </div>
         </div>
         <div class="framework-point">
           <div class="point-num">04</div>
           <div class="point-text">
-            <h4>Home button (GPIO 10)</h4>
-            <p>Short press the physical home button to return to the launcher. Long press (2s) to enter deep sleep — press again to wake.</p>
+            <h4>Two-finger tap to exit</h4>
+            <p>Tap with two fingers anywhere to return to the launcher — no physical button, and nothing for your app to handle. After 5 minutes idle the screen blanks; touch it to wake.</p>
           </div>
         </div>
       </div>
@@ -262,11 +262,10 @@
 <span class="var">NAME</span> = <span class="str">"My App"</span>
 <span class="var">ICON</span> = <span class="var">0xF81F</span>  <span class="cm"># colour565 fallback</span>
 
-<span class="kw">def</span> <span class="fn">run</span>(display, touch, font, button):
+<span class="kw">def</span> <span class="fn">run</span>(display, touch, font):
     <span class="cm"># display  → amoled.AMOLED (536×240)</span>
     <span class="cm"># touch    → FT3168 driver</span>
     <span class="cm"># font     → 31px bitmap font</span>
-    <span class="cm"># button   → HomeButton driver</span>
 
     display.<span class="fn">fill</span>(<span class="var">0x0000</span>)
     display.<span class="fn">write</span>(
@@ -277,8 +276,8 @@
     )
 
     <span class="kw">while True</span>:
-        <span class="kw">if</span> button.<span class="fn">check</span>():
-            <span class="kw">return</span>  <span class="cm"># back to launcher</span>
+        <span class="kw">if</span> touch.<span class="fn">home</span>():
+            <span class="kw">return</span>  <span class="cm"># two-finger tap</span>
         t = touch.<span class="fn">get_touch</span>()
         <span class="kw">if</span> t:
             <span class="kw">pass</span>  <span class="cm"># handle touch</span></pre>
@@ -350,7 +349,7 @@ esptool.py --chip esp32s3 \
 mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
-mpremote connect $PORT cp button.py :
+mpremote connect $PORT cp ft3168.py :
 
 <span class="cm"># upload your settings</span>
 mpremote connect $PORT \
@@ -388,8 +387,8 @@ mpremote connect $PORT run main.py</pre>
     </div>
     <div class="part-card">
       <h4>Momentary Push Button</h4>
-      <p>You will need this for your physical home button. The case provided accommodates a 12z12mm button.</p>
-      <div class="part-note">→ recommended for case</div>
+      <p>No longer needed for navigation — that's a two-finger tap now. The case still has a 12×12mm opening, and GPIO 10 is free, so wire one up if you want a button for your own app.</p>
+      <div class="part-note">→ optional</div>
     </div>
     <div class="part-card">
       <h4>Female Header Pins</h4>
