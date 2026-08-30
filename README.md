@@ -30,7 +30,7 @@ A MicroPython-based prototyping OS for the **Waveshare ESP32-S3-Touch-AMOLED-1.9
 No physical buttons — everything is on the touchscreen.
 
 - **Return to launcher:** tap with **two fingers** anywhere on the screen.
-- **Idle blank:** after **5 minutes** with no touch, the screen blanks. Touch it to wake — you come back to whatever was on screen, not a reboot.
+- **Idle blank:** after **3 minutes** with no touch, the screen blanks. Touch it to wake — you come back to whatever was on screen, not a reboot.
 
 Both are handled inside the touch driver, so every app gets them for free. Apps only need to call `touch.get_touch()` each loop and check `touch.home()`.
 
@@ -242,17 +242,17 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
 - **Inside apps:** Tap with two fingers to return to the launcher.
-- **Idle blank:** After 5 minutes idle the screen blanks and the CPU drops to 80MHz. Touch to wake. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
+- **Idle blank:** After 3 minutes idle the screen blanks and the board light-sleeps. Touch to wake. Note the board leaves USB while asleep. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
 
 ### Power
 
-The board has no usable CPU sleep mode (see Known Issues), so idle draw is
-managed by turning things off rather than sleeping:
+Idle draw is managed by sleeping the CPU and turning the rest off:
 
 | Measure | Where |
 |---------|-------|
 | CPU at 160MHz instead of 240MHz | `CPU_FREQ` in `main.py` |
-| CPU at 80MHz while the screen is blanked | `IDLE_FREQ` in `ft3168.py` |
+| CPU light-sleeps while the screen is blanked | `_idle()` in `ft3168.py` |
+| CPU at 80MHz between naps | `IDLE_FREQ` in `ft3168.py` |
 | Screen at 160/255 brightness | `settings.json`, or `DEFAULT_BRIGHTNESS` in `main.py` |
 | WiFi off unless an app asks for it | `wifi.py`; only IPing uses it |
 
@@ -268,7 +268,7 @@ all work at every step, so `CPU_FREQ` is safe to lower further if you want.
 - No hardware scroll support on the RM67162.
 - The board has no PMIC or fuel-gauge IC — an I2C scan finds only the touch controller and the IMU. Battery percentage is estimated from voltage on GPIO 1 against a resting-LiPo curve, so it reads high while charging on USB (the charge voltage is not the resting voltage). Treat it as an indication, not a measurement.
 - The display API is write-only — there is no pixel readback, so an overlay drawn over a running app cannot be erased. Anything drawn on top of an app has to be something the app will redraw itself.
-- Neither CPU sleep mode is usable on this board. `deepsleep` needs an `ext0` wake pin in the RTC domain (GPIO 0-21) and touch INT is GPIO 41; `lightsleep` strands the board outright — USB de-enumerates and touch does not bring it back. Idle therefore blanks the screen and keeps polling, which captures most of the saving since the AMOLED dominates the power budget.
+- `deepsleep` is unavailable: it needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0-21), and touch INT is GPIO 41. `lightsleep` does work, and idle uses it — but **USB CDC does not survive it**, so an idle board disappears from the host. Set `idle_ms=0` while developing, or touch the screen before reaching for `mpremote`.
 - The exit gesture is polled by the running app, so a long blocking call freezes it. `app_iping` can be unresponsive for up to its 20s ping timeout.
 - The FT3168's INT line fires ~1ms pulses rather than holding low, so it is useless as a polled wake signal and the idle loop does not use it. Waking relies on I2C polling (the panel self-wakes on touch) plus a ~1s `wake()` nudge as backstop, so a very quick flick may take up to a second to register.
 - The exit gesture needs a panel that reports two touch points. This one does reliably (395/395 samples), and never reports two for a single finger (0/359). Run `tools/touch_diag.py` to confirm on a different panel.

@@ -11,7 +11,7 @@ import sys, time, types
 # --- MicroPython shims -------------------------------------------------
 time.ticks_ms = lambda: _now[0]
 time.ticks_diff = lambda a, b: a - b
-time.sleep_ms = lambda ms: _tick(ms)
+time.sleep_ms = lambda ms: _advance(ms)
 
 import builtins
 builtins.const = lambda v: v          # MicroPython's const() is a no-op here
@@ -26,6 +26,7 @@ machine = types.ModuleType("machine")
 machine.Pin = FakePin
 _freq = [160_000_000]
 machine.freq = lambda hz=None: _freq[0] if hz is None else _freq.__setitem__(0, hz)
+machine.lightsleep = lambda ms: _tick(ms)      # one idle nap
 machine.I2C = lambda *a, **k: None
 sys.modules["machine"] = machine
 
@@ -38,8 +39,7 @@ def _advance(ms):
 
 
 def _tick(ms):
-    """Stands in for time.sleep_ms inside the driver. Passes the duration so
-    hooks can ignore wake()'s internal delays and count only idle polls."""
+    """Stands in for machine.lightsleep inside the driver: one idle nap."""
     _advance(ms)
     if _on_tick[0]:
         _on_tick[0](ms)
@@ -229,13 +229,28 @@ def test_idle_drops_and_restores_cpu_clock():
         "clock must be restored on wake, got %d" % machine.freq())
 
 
-def test_idle_never_calls_lightsleep():
-    """lightsleep strands this board: USB de-enumerates and never returns.
-    Guard against it creeping back in."""
-    assert not hasattr(machine, "lightsleep"), "machine.lightsleep is unstubbed"
-    assert "lightsleep" not in open("ft3168.py").read().split("ponytail:")[0], \
-        "lightsleep must not be called before the note explaining why not"
-    
+def test_idle_uses_lightsleep():
+    """Idle must actually sleep the CPU, not spin.
+
+    lightsleep was wrongly ruled out once, on the strength of a USB-tethered
+    test -- USB CDC dies across the nap, which says nothing about whether the
+    board is awake. Retested untethered it woke on touch every time, so a
+    regression back to a busy-wait would quietly cost most of the saving.
+    """
+    naps = [0]
+    p = FakePanel()
+    p.finger = None
+
+    def tick(ms):
+        naps[0] += 1
+        if naps[0] >= 2:
+            p.finger = (10, 10)
+    _on_tick[0] = tick
+
+    poll(p, ft3168.IDLE_MS + 1)
+    _on_tick[0] = None
+    assert naps[0] >= 1, "idle must call machine.lightsleep, not time.sleep_ms"
+
 
 def test_activity_defers_sleep():
     events = []

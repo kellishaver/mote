@@ -32,14 +32,14 @@ Measured on this panel: one finger reported two points in **0 of 359** samples, 
 
 This replaced an earlier press-and-hold. Hold was workable — 3052ms measured — but cost far more: a velocity threshold and a travel backstop calibrated against finger creep, plus a 600ms window where coordinates were withheld to stop the widget under the finger repeat-firing. That window broke legitimate interaction: resting a finger on a Swatch slider froze it at 600ms and exited at 3s. Two fingers is unambiguous, so all of it went away — no anchor tracking, no thresholds, no suppression window, no hold feedback.
 
-**Idle blank.** With no touch for `IDLE_MS` (5 min), the driver calls `on_sleep` (which blanks the panel), polls every `IDLE_POLL_MS` until the screen is touched, then calls `on_wake`.
+**Idle blank.** With no touch for `IDLE_MS` (3 min), the driver calls `on_sleep` (which blanks the panel), polls every `IDLE_POLL_MS` until the screen is touched, then calls `on_wake`.
 
 This deliberately does **not** sleep the CPU, and both alternatives were ruled out on hardware:
 
 - `deepsleep` needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0–21). Touch INT is GPIO 41. The old home button was GPIO 10, which is why the previous design could deep sleep — removing the button removed the only wake-capable pin.
-- `lightsleep` was tried and **strands the board**. After one nap the USB device de-enumerates and never returns, and touching the screen does not bring it back; I2C almost certainly does not survive the nap, so the poll can never see a finger. Recovery is the reset button. There is a regression test asserting `lightsleep` stays out.
+- `lightsleep` **works**, and idle uses it. It was wrongly ruled out at first, on the strength of a USB-tethered test in which the board "froze" and the port never returned — but USB CDC dying across a nap is expected and says nothing about whether the board is awake. Retested untethered on battery with on-screen feedback, it woke on touch three times out of three. The real cost is that consequence: an idle board leaves USB, so `idle_ms=0` is worth setting while developing.
 
-So idle means "blank the panel and keep polling". The AMOLED dominates the power budget, so blanking captures most of the available saving, and nothing in this path can leave the board unreachable. Real sleep needs a wake-capable pin wired first.
+So idle means "blank the panel, drop the clock, and light-sleep until touched". Blanking handles the AMOLED, which dominates the power budget; light-sleeping handles the core, which otherwise runs flat out doing nothing.
 
 Waking still needs one piece of care: the FT3168 hibernates *itself* and stops answering I2C — the state `__init__` has to pulse INT to escape. Polling `get_raw()` alone would therefore never see the touch, so every `WAKE_NUDGE_POLLS` the controller is pulsed awake and re-probed. INT is deliberately not polled: measured on hardware it fires ~1ms pulses, caught roughly 1% of the time, so it reads like a wake path without being one.
 

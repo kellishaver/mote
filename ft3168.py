@@ -21,7 +21,8 @@
 # during normal single-finger use.
 #
 # Idle: with no touch at all for idle_ms, the owner is asked to blank the
-# screen (see _idle) until it is touched again.
+# screen and the board light-sleeps until touched (see _idle). Note that USB
+# CDC does not survive lightsleep -- an idle board vanishes from the host.
 
 from machine import Pin, I2C
 import time
@@ -35,7 +36,7 @@ _REG_FIRMID     = const(0xA6)
 _REG_VENDOR_ID  = const(0xA8)
 _REG_PWR_MODE   = const(0xA5)
 
-IDLE_MS = const(300000)     # no touch for 5 min -> blank the screen
+IDLE_MS = const(180000)     # no touch for 3 min -> blank the screen
 IDLE_POLL_MS = const(200)   # how often to look for a touch while blanked
 WAKE_NUDGE_POLLS = const(5) # polls between forced controller wake attempts
 IDLE_FREQ = const(80000000) # CPU clock while blanked; restored on wake
@@ -151,21 +152,25 @@ class FT3168:
         return h
 
     def _idle(self):
-        """Idle screen blank: hand control to on_sleep, poll until touched.
+        """Idle: blank the panel and light-sleep until the screen is touched.
 
-        ponytail: this deliberately does NOT sleep the CPU. machine.lightsleep
-        was tried and strands this board -- after one nap the USB device
-        de-enumerates and never returns, and touch does not bring it back
-        (I2C almost certainly does not survive the nap, so the poll below can
-        never see a finger). deepsleep is not an option either: the touch INT
-        is GPIO 41, outside the ESP32-S3 RTC domain (GPIO 0-21), so nothing on
-        this board can serve as an ext0 wake source now that the GPIO 10
-        button is gone.
+        The CPU is genuinely asleep between naps, which is where nearly all
+        of the idle saving comes from -- blanking the panel and dropping the
+        clock alone still leaves the core running flat out.
 
-        So idle means "blank the panel and keep polling". The AMOLED dominates
-        the power budget, so blanking captures most of the saving, and nothing
-        here can leave the board unreachable. Real sleep needs a wake-capable
-        pin (GPIO 0-21) wired to something first.
+        lightsleep was wrongly ruled out at first. The evidence was a
+        USB-tethered test in which the board "froze" and the serial port
+        never came back -- but USB CDC is *expected* to die across
+        lightsleep, so that observation said nothing about whether the board
+        was awake. Retested untethered on battery with on-screen feedback:
+        it woke on touch three times out of three, counter incrementing.
+
+        The real cost is that consequence, not a hang: while idle, the board
+        disappears from USB. Set idle_ms=0 while developing, or touch the
+        screen before reaching for mpremote.
+
+        deepsleep is still unavailable -- it needs an ext0 wake pin in the
+        ESP32-S3 RTC domain (GPIO 0-21) and touch INT is GPIO 41.
         """
         if self._on_sleep:
             self._on_sleep()
@@ -183,7 +188,7 @@ class FT3168:
         polls = 0
         try:
             while True:
-                time.sleep_ms(IDLE_POLL_MS)
+                machine.lightsleep(IDLE_POLL_MS)
                 if self.get_raw() is not None:
                     break
 

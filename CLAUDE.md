@@ -92,7 +92,7 @@ mote/
 - Debounce button/switch inputs (software or hardware)
 - Add small delays (`utime.sleep_ms()`) in tight polling loops to avoid watchdog resets
 - Gracefully handle disconnected or unresponsive peripherals
-- **Do not use `machine.lightsleep()` on this board** — it strands it: USB de-enumerates and touch does not bring it back, recovery is the reset button. `machine.deepsleep()` needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0-21); touch INT is GPIO 41, so nothing currently wired can wake it. For idle power saving, blank the panel with `display.brightness(0)` and keep polling (see `FT3168._idle`).
+- `machine.lightsleep()` works and the idle path uses it (see `FT3168._idle`), but **USB CDC does not survive it** — an idle board vanishes from the host, so use `idle_ms=0` while developing. `machine.deepsleep()` needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0-21); touch INT is GPIO 41, so nothing currently wired can wake it.
 
 ## Async Patterns
 
