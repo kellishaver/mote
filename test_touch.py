@@ -24,6 +24,8 @@ class FakePin:
 
 machine = types.ModuleType("machine")
 machine.Pin = FakePin
+_freq = [160_000_000]
+machine.freq = lambda hz=None: _freq[0] if hz is None else _freq.__setitem__(0, hz)
 machine.I2C = lambda *a, **k: None
 sys.modules["machine"] = machine
 
@@ -202,6 +204,29 @@ def test_idle_wakes_from_deep_hibernate_via_nudge():
     assert polls[0] == ft3168.WAKE_NUDGE_POLLS, polls
     assert not p.i2c_dead, "wake() must revive the controller"
     assert p._blocked, "the waking touch must be swallowed"
+
+
+def test_idle_drops_and_restores_cpu_clock():
+    """The clock is lowered while blanked and must come back on wake.
+    A patch once dropped the restore and left the board at 80MHz for good."""
+    p = FakePanel()
+    p.finger = None
+    _freq[0] = 160_000_000
+    inside = []
+
+    def tick(ms):
+        if ms == ft3168.IDLE_POLL_MS:
+            inside.append(machine.freq())
+            if len(inside) >= 2:
+                p.finger = (10, 10)       # wake it
+    _on_tick[0] = tick
+
+    poll(p, ft3168.IDLE_MS + 1)
+    _on_tick[0] = None
+    assert inside, "idle loop never ran"
+    assert all(f == ft3168.IDLE_FREQ for f in inside), inside
+    assert machine.freq() == 160_000_000, (
+        "clock must be restored on wake, got %d" % machine.freq())
 
 
 def test_idle_never_calls_lightsleep():

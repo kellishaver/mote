@@ -92,11 +92,11 @@ mpremote connect $PORT mkdir /fonts
 mpremote connect $PORT mkdir /icons
 
 # Upload core files
-mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
 mpremote connect $PORT cp ft3168.py :
 mpremote connect $PORT cp uping.py :
+mpremote connect $PORT cp wifi.py :
 mpremote connect $PORT cp qmi8658.py :
 mpremote connect $PORT cp battery.py :
 mpremote connect $PORT cp app_imu.py :
@@ -138,7 +138,18 @@ Copy `settings.example.json` and fill in your WiFi credentials and owner info:
 }
 ```
 
-This file is gitignored. WiFi connects automatically on boot via `boot.py`.
+This file is gitignored.
+
+WiFi is **not** connected at boot — an associated station costs roughly 40-60mA
+continuously, which on a small pack is most of the idle budget. IPing brings the
+radio up when you press PING (about 1.5s) and drops it on exit, so Sys Info
+normally shows WiFi as "Off".
+
+Optionally set screen brightness here too; it defaults to 160 of 255:
+
+```json
+{ "display": { "brightness": 160 } }
+```
 
 ## Screenshots
 
@@ -161,12 +172,12 @@ Screenshots are simulated renders. Generate with `python3 tools/gen_screenshots.
 ```
 mote/
 ├── main.py              # Boot entry - inits hardware, runs shell
-├── boot.py              # WiFi connection on boot
 ├── shell.py             # App launcher grid with touch navigation
 ├── ft3168.py            # Touch driver + two-finger exit, idle blank
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
 ├── battery.py           # LiPo gauge (ADC on GPIO 1)
 ├── uping.py             # ICMP ping module
+├── wifi.py              # On-demand WiFi (nothing connects at boot)
 ├── app_imu.py           # IMU viewer (accel + gyro)
 ├── app_iping.py         # Network ping diagnostic
 ├── app_ohm.py           # Ohm's Law calculator
@@ -231,7 +242,22 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
 - **Inside apps:** Tap with two fingers to return to the launcher.
-- **Idle blank:** After 5 minutes idle the screen blanks. Touch to wake. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
+- **Idle blank:** After 5 minutes idle the screen blanks and the CPU drops to 80MHz. Touch to wake. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
+
+### Power
+
+The board has no usable CPU sleep mode (see Known Issues), so idle draw is
+managed by turning things off rather than sleeping:
+
+| Measure | Where |
+|---------|-------|
+| CPU at 160MHz instead of 240MHz | `CPU_FREQ` in `main.py` |
+| CPU at 80MHz while the screen is blanked | `IDLE_FREQ` in `ft3168.py` |
+| Screen at 160/255 brightness | `settings.json`, or `DEFAULT_BRIGHTNESS` in `main.py` |
+| WiFi off unless an app asks for it | `wifi.py`; only IPing uses it |
+
+Verified on hardware at 240/160/80MHz: display init, rendering, and touch I2C
+all work at every step, so `CPU_FREQ` is safe to lower further if you want.
 
 ## Known Issues
 

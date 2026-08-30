@@ -3,8 +3,32 @@
 # Initialises display and touch, then runs the app launcher.
 
 import gc
+import machine
 
-BRIGHTNESS = 255
+# 240MHz is far more than a touch UI needs and costs ~15-20mA over 160MHz.
+# Set before the display is initialised: the QSPI pclk derives from the APB
+# clock. Verified on hardware at 240/160/80MHz -- display and touch I2C all
+# fine -- so this is a safe knob if you want to go lower.
+CPU_FREQ = 160_000_000
+DEFAULT_BRIGHTNESS = 160        # 255 is maximum; the AMOLED is the biggest draw
+
+machine.freq(CPU_FREQ)
+
+
+def load_brightness():
+    """Screen brightness from settings.json, falling back to the default."""
+    try:
+        import json
+        with open("settings.json") as f:
+            v = json.load(f).get("display", {}).get("brightness")
+        if isinstance(v, int) and 1 <= v <= 255:
+            return v
+    except Exception:
+        pass
+    return DEFAULT_BRIGHTNESS
+
+
+BRIGHTNESS = load_brightness()
 
 def init_display():
     import amoled

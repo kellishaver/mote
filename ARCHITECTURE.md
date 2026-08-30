@@ -69,7 +69,7 @@ Apps that need persistence own their files on the VFS. Currently:
 | `app_swatch` | `/swatch_hist.json` — saved colour history |
 | `app_iping` | `/iping_last.txt` — last pinged IP |
 
-`settings.json` (WiFi credentials, owner info) is read by `boot.py` and `app_info`.
+`settings.json` (WiFi credentials, owner info, screen brightness) is read by `wifi.py`, `main.py`, and `app_info`.
 
 ## Launcher Grid Layout
 
@@ -88,4 +88,4 @@ Because interleaving `fill_rect` and `bitmap` at adjacent positions silently fai
 - **No animations** — transitions are instant redraws
 - **Font size** — only one bitmap font (31px) is available; no small font for dense UI
 - **Scroll performance** — full grid redraw on each scroll step; may flicker with many tiles
-- **No shared connection manager** — `boot.py` connects WiFi once at startup; apps use `network` directly and there is no reconnect logic
+- **No reconnect logic** — `wifi.connect()` brings the radio up on demand and `wifi.off()` drops it; nothing retries a connection that fails or is lost mid-app

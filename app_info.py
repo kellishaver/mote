@@ -11,6 +11,7 @@ def run(display, touch, font):
     import network
     import os
     import battery
+    import wifi
 
     W = display.width()
     H = display.height()
@@ -56,13 +57,10 @@ def run(display, touch, font):
         pass
 
     def get_wifi_status():
-        try:
-            sta = network.WLAN(network.STA_IF)
-            if sta.isconnected():
-                return sta.config("essid")
-        except:
-            pass
-        return "Not Connected"
+        # Nothing connects at boot any more; IPing brings the radio up when
+        # it needs it and drops it on exit. "Off" is the normal state.
+        name = wifi.ssid()
+        return name if name else "Off"
 
     def build_lines(mem_free):
         lines = []

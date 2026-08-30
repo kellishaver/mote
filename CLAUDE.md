@@ -52,12 +52,12 @@ Everything runs from the board's filesystem root — there is no `src/` director
 ```
 mote/
 ├── ARCHITECTURE.md      # Shell architecture decisions
-├── boot.py              # WiFi connection, runs before main.py
 ├── main.py              # Entry point — inits hardware, runs shell
 ├── shell.py             # App launcher grid with touch navigation
 ├── ft3168.py            # Touch driver + two-finger exit, idle blank
 ├── qmi8658.py           # QMI8658 6-axis IMU driver
 ├── battery.py           # LiPo gauge (ADC on GPIO 1)
+├── wifi.py              # On-demand WiFi (nothing connects at boot)
 ├── uping.py             # ICMP ping
 ├── app_template.py      # App interface template
 ├── app_imu.py           # IMU viewer
@@ -116,12 +116,12 @@ mote/
 
 ## Common Pitfalls
 
-- Forgetting `boot.py` runs before `main.py` — keep boot minimal
+- There is no `boot.py` — it existed only to auto-connect WiFi, which cost ~40-60mA continuously. `wifi.connect()` is called on demand by apps that need the network, and `wifi.off()` on the way out.
 - Apps must poll `touch.get_touch()` every loop — it drives the two-finger exit gesture and the idle timer. An app that blocks or stops polling cannot be exited without a reset.
 - Blocking the main loop kills watchdog — always yield or sleep
 - I2C/SPI bus contention when multiple devices share a bus — use locks or sequential access
 - Running out of RAM with large strings/JSON — stream or chunk data
-- WiFi reconnection logic is essential for any networked device
+- WiFi is off by default and brought up per-app; don't assume a connection exists
 
 ## Git
 

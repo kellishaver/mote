@@ -38,6 +38,7 @@ _REG_PWR_MODE   = const(0xA5)
 IDLE_MS = const(300000)     # no touch for 5 min -> blank the screen
 IDLE_POLL_MS = const(200)   # how often to look for a touch while blanked
 WAKE_NUDGE_POLLS = const(5) # polls between forced controller wake attempts
+IDLE_FREQ = const(80000000) # CPU clock while blanked; restored on wake
 
 
 class FT3168:
@@ -168,6 +169,17 @@ class FT3168:
         """
         if self._on_sleep:
             self._on_sleep()
+
+        # Drop the CPU clock while blanked. The panel is off, so the QSPI
+        # pclk that normally constrains this doesn't matter here, and touch
+        # I2C is verified good down to 80MHz -- the wake path can't break.
+        import machine
+        run_freq = machine.freq()
+        try:
+            machine.freq(IDLE_FREQ)
+        except Exception:
+            run_freq = None
+
         polls = 0
         try:
             while True:
@@ -189,6 +201,10 @@ class FT3168:
                     if self.get_raw() is not None:
                         break
         finally:
+            # Restore the clock first: everything below, and the app resuming
+            # after us, should run at full speed.
+            if run_freq:
+                machine.freq(run_freq)
             if self._on_wake:
                 self._on_wake()
             # Swallow the waking touch and restart the idle countdown.

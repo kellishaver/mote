@@ -8,7 +8,7 @@ _STATE_FILE = "/iping_last.txt"
 
 def run(display, touch, font):
     import time
-    import network
+    import wifi
 
     W = display.width()
     H = display.height()
@@ -58,11 +58,7 @@ def run(display, touch, font):
         return "{}.{}.{}.{}".format(*octets)
 
     def wifi_connected():
-        try:
-            sta = network.WLAN(network.STA_IF)
-            return sta.isconnected()
-        except:
-            return False
+        return wifi.is_connected()
 
     # --- Main screen layout ---
     # Left column: IP + result side by side, then button below
@@ -207,10 +203,16 @@ def run(display, touch, font):
     def do_ping():
         nonlocal last_result, last_result_color
         if not wifi_connected():
-            last_result = "No WiFi"
-            last_result_color = RED
+            # Nothing connects at boot any more -- an idle associated station
+            # is most of the power budget -- so bring the radio up here.
+            last_result = "WiFi..."
+            last_result_color = BLUE
             draw_result_area()
-            return
+            if not wifi.connect():
+                last_result = "No WiFi"
+                last_result_color = RED
+                draw_result_area()
+                return
 
         save_ip()
         target = ip_str()
@@ -236,50 +238,55 @@ def run(display, touch, font):
     # --- Main screen ---
     draw_main()
 
-    while True:
-        if touch.home():
-            return
+    try:
+        while True:
+            if touch.home():
+                return
 
-        pos = touch.get_touch()
+            pos = touch.get_touch()
 
-        if pos is not None:
-            tx, ty = pos
+            if pos is not None:
+                tx, ty = pos
 
-            if editing:
-                key = numpad_hit(tx, ty)
-                if key is not None:
-                    time.sleep_ms(150)
-                    if key == "<":
-                        if edit_buf:
-                            edit_buf = edit_buf[:-1]
-                        elif edit_octet > 0:
-                            # Go back to previous octet
-                            edit_octet -= 1
-                            edit_buf = str(octets[edit_octet])
-                        draw_numpad()
-                    elif key == "OK":
-                        val = int(edit_buf) if edit_buf else 0
-                        octets[edit_octet] = max(0, min(255, val))
-                        edit_octet += 1
-                        if edit_octet >= 4:
-                            editing = False
-                            draw_main()
+                if editing:
+                    key = numpad_hit(tx, ty)
+                    if key is not None:
+                        time.sleep_ms(150)
+                        if key == "<":
+                            if edit_buf:
+                                edit_buf = edit_buf[:-1]
+                            elif edit_octet > 0:
+                                # Go back to previous octet
+                                edit_octet -= 1
+                                edit_buf = str(octets[edit_octet])
+                            draw_numpad()
+                        elif key == "OK":
+                            val = int(edit_buf) if edit_buf else 0
+                            octets[edit_octet] = max(0, min(255, val))
+                            edit_octet += 1
+                            if edit_octet >= 4:
+                                editing = False
+                                draw_main()
+                            else:
+                                edit_buf = ""
+                                draw_numpad()
                         else:
-                            edit_buf = ""
-                            draw_numpad()
-                    else:
-                        if len(edit_buf) < 3:
-                            edit_buf += key
-                            draw_numpad()
-            else:
-                if ip_field_hit(tx, ty):
-                    editing = True
-                    edit_octet = 0
-                    edit_buf = ""
-                    draw_numpad()
-                    time.sleep_ms(200)
-                elif btn_hit(tx, ty):
-                    time.sleep_ms(150)
-                    do_ping()
+                            if len(edit_buf) < 3:
+                                edit_buf += key
+                                draw_numpad()
+                else:
+                    if ip_field_hit(tx, ty):
+                        editing = True
+                        edit_octet = 0
+                        edit_buf = ""
+                        draw_numpad()
+                        time.sleep_ms(200)
+                    elif btn_hit(tx, ty):
+                        time.sleep_ms(150)
+                        do_ping()
 
-        time.sleep_ms(30)
+            time.sleep_ms(30)
+    finally:
+        # However we leave -- gesture or exception -- don't leave the radio
+        # associated. That's the whole point of connecting on demand.
+        wifi.off()
