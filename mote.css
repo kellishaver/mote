@@ -581,7 +581,7 @@ pre .var { color: var(--text); }
 /* PARTS LIST */
 .parts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   gap: 1rem;
 }
 
@@ -615,6 +615,27 @@ pre .var { color: var(--text); }
   font-size: 0.65rem;
   color: var(--orange);
   letter-spacing: 0.05em;
+}
+
+
+/* Gallery */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 1rem;
+}
+
+.gallery-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.gallery-card img {
+  width:100%;
+  height:auto;
 }
 
 /* FOOTER */

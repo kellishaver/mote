@@ -255,7 +255,8 @@
       <p style="font-size:0.9rem; line-height:1.7; color:var(--text-dim); margin-top:1rem;">
         Sleep is real: the screen blanks, the clock drops, and the CPU
         light-sleeps until you touch the glass. It wakes where you left off
-        rather than rebooting. One consequence worth knowing — an asleep Mote
+        rather than rebooting.</p>
+        <p><strong>Note:</strong> A sleeping Mote
         leaves USB, so touch it before reaching for <span class="inline-code">mpremote</span>.
       </p>
     </div>
@@ -375,7 +376,7 @@
         <div class="step-num">4</div>
         <div class="step-content">
           <h4>Print the case (optional)</h4>
-          <p>STL files included. White PLA, ~45 minutes. M2 screws into the board standoffs. No glue.</p>
+          <p>STL files included. A PLA print takes around 45 minutes, often less. No glue is needed. Everything fits by friction.</p>
         </div>
       </div>
     </div>
@@ -437,13 +438,8 @@ mpremote connect $PORT run main.py</pre>
       <div class="part-note">→ required for portable use</div>
     </div>
     <div class="part-card">
-      <h4>M2 Screws (4×)</h4>
-      <p>For mounting the board to the case via the onboard brass standoffs. Short M2s, 4–6mm length.</p>
-      <div class="part-note">→ required for case</div>
-    </div>
-    <div class="part-card">
       <h4>PLA Filament</h4>
-      <p>If you plan to 3D print the case files. ~45 minute print for both halves. No supports needed with the current design.</p>
+      <p>If you plan to 3D print the case files. ~45 minute print for both halves. Minimal supports are needed with the current design.</p>
       <div class="part-note">→ required for case</div>
     </div>
     <div class="part-card">
@@ -452,6 +448,35 @@ mpremote connect $PORT run main.py</pre>
       <div class="part-note">→ required for setup</div>
     </div>
   </div>
+  <br>
+  <p><strong>Note:</strong> The provided Mote case allows you to build a simple, pocket-friendly device. It is friction-fit and does not expose GPIO pins. If you wish to extend mote, such as adding physical buttons, exposing GPIO pins, changing the way the case closes, or adding a larger battery, you'll need to design your own case.</p>
+</section>
+
+
+<div class="section-divider"></div>
+
+<!-- PARTS LIST -->
+<section id="gallery">
+  <div class="section-header">
+    <div class="section-tag">Gallery</div>
+    <h2>See Mote.<br>See Mote Run.</h2>
+  </div>
+  <div class="gallery-grid">
+    <div class="gallery-card">
+      <img src="./img/mote-1.png">
+    </div>
+    <div class="gallery-card">
+      <img src="./img/mote-2.png">
+    </div>
+    <div class="gallery-card">
+      <img src="./img/mote-3.png">
+    </div>
+    <div class="gallery-card">
+      <img src="./img/mote-4.png">
+    </div>
+  </div>
+  <br>
+  <p><strong>Note:</strong> The device pictured here has a magnetic USB-C charging dongle added. The case as it is designed prints with the charging port flush with the case edge.</p>
 </section>
 
 <div class="section-divider"></div>
