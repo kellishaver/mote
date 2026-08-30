@@ -11,7 +11,7 @@ import sys, time, types
 # --- MicroPython shims -------------------------------------------------
 time.ticks_ms = lambda: _now[0]
 time.ticks_diff = lambda a, b: a - b
-time.sleep_ms = lambda ms: _advance(ms)
+time.sleep_ms = lambda ms: _wait(ms)
 
 import builtins
 builtins.const = lambda v: v          # MicroPython's const() is a no-op here
@@ -36,6 +36,16 @@ _on_tick = [None]                 # tests hook this to script the finger
 
 def _advance(ms):
     _now[0] += ms
+
+
+_on_wait = [None]                 # hook on the driver's time.sleep_ms
+
+
+def _wait(ms):
+    """time.sleep_ms inside the driver -- wake() delays and the drain loop."""
+    _advance(ms)
+    if _on_wait[0]:
+        _on_wait[0](ms)
 
 
 def _tick(ms):
@@ -64,6 +74,9 @@ class FakePanel(ft3168.FT3168):
         self._idle_ms = kw.get("idle_ms", ft3168.IDLE_MS)
         self._buf4 = bytearray(4)
         self._home = False
+        self._multi_start = 0
+        self._multi_held = False
+        self._multi_done = False
         self._blocked = False         # tests start with the finger up
         self._last_active = time.ticks_ms()
 
@@ -103,12 +116,75 @@ def test_single_finger_reports_coords():
     assert not p.home()
 
 
-def test_two_fingers_fire_home():
+def test_two_finger_tap_fires_home_on_release():
     p = FakePanel()
     p.finger, p.fingers = (100, 50), 2
     assert poll(p) is None, "coords must be withheld during the gesture"
-    assert p.home(), "two fingers must fire home"
+    assert not p.home(), "a tap resolves on release, not on touchdown"
+    p.finger = None                       # lift, well inside SLEEP_HOLD_MS
+    poll(p)
+    assert p.home(), "lifting must fire home"
     assert not p.home(), "home must be one-shot"
+
+
+def test_two_finger_hold_sleeps_instead_of_home():
+    events = []
+    p = FakePanel(on_sleep=lambda: events.append("blank"),
+                  on_wake=lambda: events.append("wake"))
+    p.finger, p.fingers = (100, 50), 2
+
+    # fingers lift shortly after the blank, which is what lets _idle proceed
+    def during_drain(ms):
+        p.finger = None
+    _on_wait[0] = during_drain
+
+    naps = [0]
+    def tick(ms):
+        naps[0] += 1
+        if naps[0] >= 2:
+            p.finger, p.fingers = (10, 10), 1    # touch to wake
+    _on_tick[0] = tick
+
+    for _ in range(int(ft3168.SLEEP_HOLD_MS / 30) + 4):
+        poll(p)
+        if events:
+            break
+    _on_wait[0] = None
+    _on_tick[0] = None
+
+    assert events[:1] == ["blank"], events
+    assert "wake" in events, events
+    assert not p.home(), "a hold must sleep, not also exit to the launcher"
+
+
+def test_sleep_waits_for_fingers_to_lift():
+    """Coming from the hold the fingers are still down; arming the wake poll
+    before they lift would wake the device instantly."""
+    p = FakePanel(on_sleep=lambda: None)
+    p.finger, p.fingers = (100, 50), 2
+    order = []
+
+    def during_drain(ms):
+        order.append("drain")
+        if len(order) >= 3:
+            p.finger = None               # lift on the third drain poll
+    _on_wait[0] = during_drain
+
+    def tick(ms):
+        order.append("nap")
+        p.finger, p.fingers = (10, 10), 1
+    _on_tick[0] = tick
+
+    for _ in range(int(ft3168.SLEEP_HOLD_MS / 30) + 4):
+        poll(p)
+        if "nap" in order:
+            break
+    _on_wait[0] = None
+    _on_tick[0] = None
+
+    assert "nap" in order, "never reached the wake poll"
+    assert order.index("drain") < order.index("nap"), order
+    assert order.count("drain") >= 3, order
 
 
 def test_single_finger_never_fires_home():
@@ -121,18 +197,49 @@ def test_single_finger_never_fires_home():
     assert not p.home(), "one finger must never exit"
 
 
-def test_fingers_still_down_after_home_are_swallowed():
+def test_hold_survives_panel_dropping_second_contact():
+    """Measured on hardware: a stationary two-finger hold reports count==2
+    for only a fraction of the time and count==1 for the rest. The hold must
+    keep timing on the remaining finger or it can never mature."""
+    events = []
+    p = FakePanel(on_sleep=lambda: events.append("blank"),
+                  on_wake=lambda: events.append("wake"))
+    p.finger, p.fingers = (100, 50), 2
+    poll(p)                                # latch the gesture
+    p.fingers = 1                          # panel loses the second contact
+
+    _on_wait[0] = lambda ms: setattr(p, "finger", None)
+    naps = [0]
+    def tick(ms):
+        naps[0] += 1
+        if naps[0] >= 2:
+            p.finger, p.fingers = (10, 10), 1
+    _on_tick[0] = tick
+
+    for _ in range(int(ft3168.SLEEP_HOLD_MS / 30) + 4):
+        poll(p)
+        if events:
+            break
+    _on_wait[0] = None
+    _on_tick[0] = None
+    assert "blank" in events, "hold must still sleep after the panel drops to 1"
+
+
+def test_partial_lift_leaks_no_coords():
+    """Two fingers down, then one lifts. The remaining finger must not be
+    reported -- otherwise letting go over a launcher tile relaunches it."""
     p = FakePanel()
     p.finger, p.fingers = (100, 50), 2
-    poll(p)
-    assert p.home()
-    p.fingers = 1                     # one finger lifts, one still resting
+    assert poll(p) is None
+    p.fingers = 1                     # one finger up, one still on the glass
     for _ in range(20):
         assert poll(p) is None, "a lingering finger must not land as a tap"
+    assert not p.home(), "home waits for a full release"
     p.finger = None
     poll(p)
+    assert p.home(), "home fires once everything is lifted"
     p.finger, p.fingers = (100, 50), 1
-    assert poll(p) == (100, 50), "a fresh press after release works again"
+    assert poll(p) == (100, 50), "a fresh single-finger press works again"
 
 
 def test_drag_is_unaffected():

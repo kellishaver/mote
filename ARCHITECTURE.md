@@ -26,7 +26,9 @@ Apps must call `touch.get_touch()` every loop iteration even if they ignore the 
 
 There is no physical home button. Both exiting an app and idle blanking are driven from `FT3168.get_touch()`, which every app already polls once per loop — so the logic lives in one place and no app carries its own copy.
 
-**Two-finger exit.** `get_touch()` watches the touch count and arms `home()` the moment it sees two points. Coordinates are withheld while two fingers are down and stay withheld until both lift, so the widget underneath can't fire on the way out and releasing over a launcher tile can't relaunch anything.
+**Two-finger gestures.** `get_touch()` watches the touch count. Two points latch a gesture: released before `SLEEP_HOLD_MS` it's a **tap** and arms `home()`; held past it, the device **sleeps** immediately. Coordinates are withheld for the whole gesture and stay withheld until a full release, so the widget underneath can't fire on the way out and letting go over a launcher tile can't relaunch anything.
+
+Two details are hardware-driven. The gesture latches rather than requiring two points continuously, because the panel drops the second contact once the fingers stop moving — a stationary hold measured two points for only ~420ms and one for the rest, so timing the hold only while `count >= 2` meant it could never mature. And `_idle()` blanks first, then waits for the fingers to lift before arming the wake poll: coming from a hold they are still down, and the first poll would otherwise read them as a touch and wake straight back up. Measured: sleeps at 2007ms, stays asleep until genuinely touched.
 
 Measured on this panel: one finger reported two points in **0 of 359** samples, and two fingers reported two in **395 of 395**. No false positives and no dropouts, so the gesture needs no debounce and fires instantly.
 

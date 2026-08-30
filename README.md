@@ -30,6 +30,7 @@ A MicroPython-based prototyping OS for the **Waveshare ESP32-S3-Touch-AMOLED-1.9
 No physical buttons — everything is on the touchscreen.
 
 - **Return to launcher:** tap with **two fingers** anywhere on the screen.
+- **Sleep now:** hold **two fingers** for 2 seconds. Touch to wake.
 - **Idle blank:** after **3 minutes** with no touch, the screen blanks. Touch it to wake — you come back to whatever was on screen, not a reboot.
 
 Both are handled inside the touch driver, so every app gets them for free. Apps only need to call `touch.get_touch()` each loop and check `touch.home()`.
@@ -241,7 +242,7 @@ The `.bin` filename must match the app module name. Upload to `/icons/` on the b
 ## Navigation
 
 - **Launcher:** Tap a tile to open an app. Swipe up/down to scroll if more than 6 apps.
-- **Inside apps:** Tap with two fingers to return to the launcher.
+- **Inside apps:** Tap with two fingers to return to the launcher. Hold two fingers for 2 seconds to sleep immediately.
 - **Idle blank:** After 3 minutes idle the screen blanks and the board light-sleeps. Touch to wake. Note the board leaves USB while asleep. Change the timeout with `FT3168(idle_ms=...)` in `main.py`; `idle_ms=0` disables it.
 
 ### Power
@@ -271,4 +272,4 @@ all work at every step, so `CPU_FREQ` is safe to lower further if you want.
 - `deepsleep` is unavailable: it needs an `ext0` wake pin in the ESP32-S3 RTC domain (GPIO 0-21), and touch INT is GPIO 41. `lightsleep` does work, and idle uses it — but **USB CDC does not survive it**, so an idle board disappears from the host. Set `idle_ms=0` while developing, or touch the screen before reaching for `mpremote`.
 - The exit gesture is polled by the running app, so a long blocking call freezes it. `app_iping` can be unresponsive for up to its 20s ping timeout.
 - The FT3168's INT line fires ~1ms pulses rather than holding low, so it is useless as a polled wake signal and the idle loop does not use it. Waking relies on I2C polling (the panel self-wakes on touch) plus a ~1s `wake()` nudge as backstop, so a very quick flick may take up to a second to register.
-- The exit gesture needs a panel that reports two touch points. This one does reliably (395/395 samples), and never reports two for a single finger (0/359). Run `tools/touch_diag.py` to confirm on a different panel.
+- The gestures need a panel that reports two touch points. This one does, and never reports two for a single finger (0/359 samples). But it *drops* the second contact once the fingers stop moving — a stationary hold reported two points for only ~420ms in one measurement — so the hold latches on first seeing two and keeps timing on whatever remains. Run `tools/touch_diag.py` to check a different panel.

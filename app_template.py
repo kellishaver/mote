@@ -11,6 +11,7 @@
 #   touch   — the FT3168 touch driver
 #             touch.get_touch() returns (x, y) or None
 #             touch.home() returns True once after a two-finger tap
+#             (a two-finger *hold* of 2s sleeps the device instead)
 #   font    — the bitmap font module for display.write()
 #
 # To exit back to the launcher, simply return from run().

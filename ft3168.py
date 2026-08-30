@@ -13,12 +13,20 @@
 # (X=0..239, Y=0..535). In landscape display mode (rotation=1), axes must be
 # swapped: display_x = raw_y, display_y = raw_x.
 #
-# Gestures: a two-finger touch is how apps are exited now that there is no
-# physical home button. get_touch() watches the touch count and trips home()
-# the moment it sees two points. Measured on this panel: one finger never
-# reports two (0 of 359 samples) and two fingers report two on every sample
-# (395 of 395), so the gesture needs no debounce and cannot fire by accident
-# during normal single-finger use.
+# Gestures, both on two fingers -- one finger is left entirely to the apps:
+#
+#   two-finger tap             -> home(), fired when the fingers lift
+#   two-finger hold (2s)       -> sleep immediately
+#
+# Measured on this panel: one finger never reports two (0 of 359 samples) and
+# two fingers report two on every sample (395 of 395), so neither gesture
+# needs a debounce and neither can fire during normal single-finger use.
+#
+# A single-finger hold is deliberately NOT used for either. No app does
+# press/release edge detection, so holding repeat-fires whatever is under the
+# finger -- holding Swatch's Save writes duplicate swatches, holding IPing's
+# PING re-enters a call that blocks for 20s. Coordinates are already withheld
+# whenever two points are down, so the two-finger gestures avoid all of it.
 #
 # Idle: with no touch at all for idle_ms, the owner is asked to blank the
 # screen and the board light-sleeps until touched (see _idle). Note that USB
@@ -40,6 +48,8 @@ IDLE_MS = const(180000)     # no touch for 3 min -> blank the screen
 IDLE_POLL_MS = const(200)   # how often to look for a touch while blanked
 WAKE_NUDGE_POLLS = const(5) # polls between forced controller wake attempts
 IDLE_FREQ = const(80000000) # CPU clock while blanked; restored on wake
+SLEEP_HOLD_MS = const(2000) # two fingers held this long -> sleep now
+DRAIN_TIMEOUT_MS = const(5000)  # give up waiting for fingers to lift
 
 
 class FT3168:
@@ -55,6 +65,9 @@ class FT3168:
         self._on_wake = on_wake
         self._idle_ms = idle_ms
         self._home = False
+        self._multi_start = 0     # when the current two-finger touch began
+        self._multi_held = False  # is a two-finger gesture in progress?
+        self._multi_done = False  # ...and has it already been acted on?
         self._blocked = True      # ignore a touch already down at startup
         self._last_active = time.ticks_ms()
 
@@ -120,19 +133,38 @@ class FT3168:
 
         if count == 0:
             self._blocked = False
+            if self._multi_held and not self._multi_done:
+                # Lifted before the sleep threshold, so it was a tap.
+                self._home = True
+            self._multi_held = False
+            self._multi_done = False
             if self._idle_ms and time.ticks_diff(now, self._last_active) > self._idle_ms:
                 self._idle()
             return None
 
         self._last_active = now
 
-        # Two fingers is the exit gesture. Coordinates are withheld so the
-        # widget under the fingers can't fire on the way out, and stay
-        # withheld until both are lifted -- otherwise releasing over a
-        # launcher tile would immediately relaunch something.
-        if count >= 2:
-            self._home = True
+        # Two fingers: tap exits, hold sleeps. Coordinates are withheld for
+        # the whole gesture and stay withheld until both fingers lift --
+        # otherwise releasing over a launcher tile would relaunch something.
+        # Once two points are seen the gesture is latched until a full
+        # release. Measured on hardware: the panel drops the second contact
+        # when the fingers stop moving -- a 4s hold reported count==2 for
+        # only ~420ms and count==1 for the rest. Timing the hold only while
+        # count>=2 meant it could never mature, so the latch keeps running
+        # on the remaining finger.
+        if count >= 2 or self._multi_held:
             self._blocked = True
+            if not self._multi_held:
+                self._multi_held = True
+                self._multi_start = now
+            if (not self._multi_done
+                    and time.ticks_diff(now, self._multi_start) >= SLEEP_HOLD_MS):
+                # Held long enough: sleep now, while the fingers are still
+                # down. _idle blanks first (so the gesture visibly landed)
+                # and waits for release before arming the wake poll.
+                self._multi_done = True
+                self._idle()
             return None
 
         if self._blocked:
@@ -174,6 +206,16 @@ class FT3168:
         """
         if self._on_sleep:
             self._on_sleep()
+
+        # Wait for the screen to clear before arming the wake poll. Coming
+        # from the two-finger hold the fingers are still down, and the first
+        # poll would otherwise read them as a touch and wake straight back
+        # up. Costs nothing on the idle-timeout path, where nothing is down.
+        drain_start = time.ticks_ms()
+        while self.get_raw() is not None:
+            if time.ticks_diff(time.ticks_ms(), drain_start) > DRAIN_TIMEOUT_MS:
+                break          # something is resting on the glass; sleep anyway
+            time.sleep_ms(30)
 
         # Drop the CPU clock while blanked. The panel is off, so the QSPI
         # pclk that normally constrains this doesn't matter here, and touch
