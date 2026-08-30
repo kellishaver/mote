@@ -16,6 +16,7 @@
   <ul>
     <li><a href="#apps">Apps</a></li>
     <li><a href="#hardware">Hardware</a></li>
+    <li><a href="#gestures">Using It</a></li>
     <li><a href="#framework">Build</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="#parts">Parts</a></li>
@@ -200,8 +201,62 @@
 }</pre>
       </div>
       <p style="font-size:0.8rem; color:var(--text-dim); margin-top:1rem; line-height:1.6;">
-        Drop a <span class="inline-code">settings.json</span> on the device to configure WiFi and owner info. 
+        Drop a <span class="inline-code">settings.json</span> on the device to configure WiFi, owner info, and screen brightness. WiFi is not connected at boot — IPing brings the radio up only when it needs it. 
         No on-screen keyboard needed — this is a dev tool, so configure it like one.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- GESTURES -->
+<section id="gestures">
+  <div class="section-header">
+    <div class="section-tag">Using It</div>
+    <h2>No buttons.<br>Two fingers do everything.</h2>
+  </div>
+  <div class="specs-layout">
+    <div class="spec-table">
+      <div class="spec-row">
+        <div class="spec-key">Tap 2 fingers</div>
+        <div class="spec-val spec-highlight">Back to the launcher</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Hold 2 fingers</div>
+        <div class="spec-val">Sleep now, after 2 seconds</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Touch anywhere</div>
+        <div class="spec-val">Wake, right where you left off</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">3 minutes idle</div>
+        <div class="spec-val">Sleeps on its own</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">One finger</div>
+        <div class="spec-val">Belongs to whatever app is running</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">Launcher</div>
+        <div class="spec-val">Tap a tile to open; swipe to scroll</div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.9rem; line-height:1.7; color:var(--text-dim);">
+        Both gestures use two fingers on purpose. Apps read raw touches with no
+        press/release detection, so a one-finger hold would repeat-fire whatever
+        sits under it — enough to write duplicate swatches, or re-enter a ping
+        that blocks for twenty seconds. Two fingers are unambiguous, so the
+        driver simply withholds coordinates for the whole gesture and no app
+        needs to know it happened.
+      </p>
+      <p style="font-size:0.9rem; line-height:1.7; color:var(--text-dim); margin-top:1rem;">
+        Sleep is real: the screen blanks, the clock drops, and the CPU
+        light-sleeps until you touch the glass. It wakes where you left off
+        rather than rebooting. One consequence worth knowing — an asleep Mote
+        leaves USB, so touch it before reaching for <span class="inline-code">mpremote</span>.
       </p>
     </div>
   </div>
@@ -242,8 +297,8 @@
         <div class="framework-point">
           <div class="point-num">04</div>
           <div class="point-text">
-            <h4>Two-finger tap to exit</h4>
-            <p>Tap with two fingers anywhere to return to the launcher — no physical button, and nothing for your app to handle. After 5 minutes idle the screen blanks; touch it to wake.</p>
+            <h4>Gestures are handled for you</h4>
+            <p>Two fingers drive navigation and power — your app never sees them, and never has to handle them. One finger is entirely yours.</p>
           </div>
         </div>
       </div>
@@ -346,10 +401,11 @@ esptool.py --chip esp32s3 \
   0x0 firmware_2025_12_15.bin
 
 <span class="cm"># upload mote</span>
-mpremote connect $PORT cp boot.py :
 mpremote connect $PORT cp main.py :
 mpremote connect $PORT cp shell.py :
 mpremote connect $PORT cp ft3168.py :
+mpremote connect $PORT cp wifi.py :
+mpremote connect $PORT cp battery.py :
 
 <span class="cm"># upload your settings</span>
 mpremote connect $PORT \
